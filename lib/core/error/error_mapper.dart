@@ -6,7 +6,7 @@ class ErrorMapper {
     // Since exceptions already have proper messages and codes,
     // we just need to map them directly
 
-    if (error is AppException) {
+    if (error is ServerException) {
       return ServerFailure(
         message: error.userMessage,
         isRecoverable: error.isRecoverable,
@@ -55,7 +55,7 @@ class ErrorMapper {
     }
 
     if (error is StorageException) {
-      return StoreageFailure(
+      return StorageFailure(
         message: error.userMessage, // Changed to error.userMessage
         isRecoverable: error.isRecoverable,
         title: error.title, // Added title

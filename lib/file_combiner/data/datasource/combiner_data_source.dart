@@ -18,6 +18,7 @@ abstract class CombinerDataSource {
     String folderPath, {
     List<String>? allowedExtensions,
   });
+  Future<io.File> combineFiles(List<String> filePaths);
 }
 
 class CombinerDataSourceImpl implements CombinerDataSource {
@@ -512,6 +513,79 @@ class CombinerDataSourceImpl implements CombinerDataSource {
         originalError: e.toString(),
         title: 'Unexpected Error',
         debugDetails: 'Path: $folderPath',
+        stackTrace: stack.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<io.File> combineFiles(List<String> filePaths) async {
+    // 1. Validate input
+    if (filePaths.isEmpty) {
+      throw const ValidationException(
+        userMessage: 'No files provided to combine',
+        methodName: 'combineFiles',
+        originalError: 'Empty file paths list',
+        title: 'Invalid Input',
+        isRecoverable: false,
+      );
+    }
+
+    try {
+      // 2. Create temporary file for combined content
+      final tempDir = io.Directory.systemTemp;
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final combinedFile = io.File('${tempDir.path}/combined_files_$timestamp.txt');
+
+      // 3. Create StringBuffer for content
+      final buffer = StringBuffer();
+
+      // 4. Process each file
+      for (int i = 0; i < filePaths.length; i++) {
+        final filePath = filePaths[i];
+        
+        try {
+          final file = io.File(filePath);
+          
+          // Check if file exists
+          if (!await file.exists()) {
+            buffer.writeln('// File not found: $filePath');
+            continue;
+          }
+
+          // Add file header
+          buffer..writeln('// ========================================')
+          ..writeln('// File: $filePath')
+          ..writeln('// ========================================')
+          ..writeln();
+
+          // Read and append file content
+          final content = await file.readAsString();
+          buffer.writeln(content);
+          
+          // Add separator between files (except for last file)
+          if (i < filePaths.length - 1) {
+            buffer..writeln()
+            ..writeln();
+          }
+        } on Exception catch (e) {
+          // Add error note for problematic files
+          buffer..writeln('// Error reading file: $filePath - $e')
+          ..writeln();
+        }
+      }
+
+      // 5. Write combined content to file
+      await combinedFile.writeAsString(buffer.toString());
+
+      return combinedFile;
+    } catch (e, stack) {
+      throw StorageException(
+        userMessage: 'Failed to combine files',
+        methodName: 'combineFiles',
+        originalError: e.toString(),
+        title: 'File Combination Error',
+        debugDetails: 'Files: ${filePaths.join(', ')}',
         stackTrace: stack.toString(),
       );
     }

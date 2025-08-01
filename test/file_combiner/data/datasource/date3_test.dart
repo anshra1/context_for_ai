@@ -3,7 +3,7 @@
 import 'dart:io' as io;
 
 import 'package:context_for_ai/core/error/exception.dart'; // Contains AppException types
-import 'package:context_for_ai/file_combiner/data/combiner_data_source.dart';
+import 'package:context_for_ai/file_combiner/data/datasource/combiner_data_source.dart';
 import 'package:context_for_ai/file_combiner/domain/entity/file_system_entry.dart';
 import 'package:context_for_ai/file_combiner/domain/entity/workspace_entry.dart';
 import 'package:context_for_ai/file_combiner/domain/hive_model/workspace_entry_hive.dart';
