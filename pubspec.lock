@@ -917,9 +917,11 @@ packages:
   theme_ui_widgets:
     dependency: "direct main"
     description:
-      path: "/home/ansh/Studio Projects/Clone/debug_app_web/package/theme_ui_widgets"
-      relative: false
-    source: path
+      path: "."
+      ref: master
+      resolved-ref: "1d8f91865d96b88880987688d09c8d223693b944"
+      url: "https://github.com/anshra1/theme_ui_widgets.git"
+    source: git
     version: "0.0.1"
   timing:
     dependency: transitive
@@ -932,9 +934,11 @@ packages:
   toastification:
     dependency: "direct main"
     description:
-      path: "/home/ansh/Studio Projects/Clone/debug_app_web/package/toastification-main"
-      relative: false
-    source: path
+      path: "."
+      ref: master
+      resolved-ref: dceb02b9a095fdb7682c305cc5bb37f7e6cd50b7
+      url: "https://github.com/anshra1/toastification.git"
+    source: git
     version: "3.0.3"
   typed_data:
     dependency: transitive

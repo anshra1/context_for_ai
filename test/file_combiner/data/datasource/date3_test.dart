@@ -7,7 +7,7 @@ import 'package:context_for_ai/file_combiner/data/datasource/combiner_data_sourc
 import 'package:context_for_ai/file_combiner/domain/entity/file_system_entry.dart';
 import 'package:context_for_ai/file_combiner/domain/entity/workspace_entry.dart';
 import 'package:context_for_ai/file_combiner/domain/hive_model/workspace_entry_hive.dart';
-import 'package:context_for_ai/seting/datasource/setting_datasource.dart';
+import 'package:context_for_ai/seting/data/datasource/setting_datasource.dart';
 import 'package:context_for_ai/seting/model/app_setting.dart'; // Contains AppSettings
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
