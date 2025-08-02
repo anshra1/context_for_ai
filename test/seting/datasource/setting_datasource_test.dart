@@ -4,9 +4,9 @@ import 'dart:io';
 
 import 'package:context_for_ai/core/constants/hive_constants.dart';
 import 'package:context_for_ai/core/error/exception.dart';
-import 'package:context_for_ai/seting/data/datasource/setting_datasource.dart';
-import 'package:context_for_ai/seting/model/app_setting.dart';
-import 'package:context_for_ai/seting/model/app_settings_hive.dart';
+import 'package:context_for_ai/features/setting/data/datasource/setting_datasource.dart';
+import 'package:context_for_ai/features/setting/model/app_setting.dart';
+import 'package:context_for_ai/features/setting/model/app_settings_hive.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:mocktail/mocktail.dart';

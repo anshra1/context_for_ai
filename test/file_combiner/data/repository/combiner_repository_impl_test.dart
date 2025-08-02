@@ -2,10 +2,10 @@ import 'dart:io';
 
 import 'package:context_for_ai/core/error/exception.dart';
 import 'package:context_for_ai/core/error/failure.dart';
-import 'package:context_for_ai/file_combiner/data/datasource/combiner_data_source.dart';
-import 'package:context_for_ai/file_combiner/data/repository/combiner_repository_impl.dart';
-import 'package:context_for_ai/file_combiner/domain/entity/file_system_entry.dart';
-import 'package:context_for_ai/file_combiner/domain/entity/workspace_entry.dart';
+import 'package:context_for_ai/features/file_combiner/data/datasource/combiner_data_source.dart';
+import 'package:context_for_ai/features/file_combiner/data/repository/combiner_repository_impl.dart';
+import 'package:context_for_ai/features/file_combiner/domain/entity/file_system_entry.dart';
+import 'package:context_for_ai/features/file_combiner/domain/entity/workspace_entry.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -197,21 +197,30 @@ void main() {
     });
 
     group('combineFiles', () {
-      test('should return Right with combined file on success', () async {
+      test('should return Right with CombineFilesResult on success', () async {
         // Arrange
         final filePaths = ['/path1.dart', '/path2.dart'];
-        final combinedFile = File('/temp/combined.txt');
+        final combineResult = CombineFilesResult(
+          files: [File('/docs/ai_context/combined.txt')],
+          totalFiles: 1,
+          totalTokens: 200,
+          saveLocation: '/docs/ai_context',
+        );
         when(() => mockDataSource.combineFiles(filePaths))
-            .thenAnswer((_) async => combinedFile);
+            .thenAnswer((_) async => combineResult);
 
         // Act
         final result = await repository.combineFiles(filePaths);
 
         // Assert
-        expect(result, isA<Right<Failure, File>>());
+        expect(result, isA<Right<Failure, CombineFilesResult>>());
         result.fold(
           (failure) => fail('Expected Right but got Left'),
-          (file) => expect(file, equals(combinedFile)),
+          (combineFilesResult) {
+            expect(combineFilesResult.totalFiles, equals(1));
+            expect(combineFilesResult.totalTokens, equals(200));
+            expect(combineFilesResult.saveLocation, equals('/docs/ai_context'));
+          },
         );
       });
 
@@ -231,10 +240,10 @@ void main() {
         final result = await repository.combineFiles(filePaths);
 
         // Assert
-        expect(result, isA<Left<Failure, File>>());
+        expect(result, isA<Left<Failure, CombineFilesResult>>());
         result.fold(
           (failure) => expect(failure, isA<ValidationFailure>()),
-          (file) => fail('Expected Left but got Right'),
+          (combineResult) => fail('Expected Left but got Right'),
         );
       });
     });

@@ -1,7 +1,7 @@
 import 'package:context_for_ai/core/error/failure.dart';
-import 'package:context_for_ai/seting/domain/repository/settings_repository.dart';
-import 'package:context_for_ai/seting/domain/usecase/settings_usecases.dart';
-import 'package:context_for_ai/seting/model/app_setting.dart';
+import 'package:context_for_ai/features/setting/domain/repository/settings_repository.dart';
+import 'package:context_for_ai/features/setting/domain/usecase/settings_usecases.dart';
+import 'package:context_for_ai/features/setting/model/app_setting.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';

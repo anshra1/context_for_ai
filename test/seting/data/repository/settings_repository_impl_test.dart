@@ -1,8 +1,8 @@
 import 'package:context_for_ai/core/error/exception.dart';
 import 'package:context_for_ai/core/error/failure.dart';
-import 'package:context_for_ai/seting/data/datasource/setting_datasource.dart';
-import 'package:context_for_ai/seting/data/repository/settings_repository_impl.dart';
-import 'package:context_for_ai/seting/model/app_setting.dart';
+import 'package:context_for_ai/features/setting/data/datasource/setting_datasource.dart';
+import 'package:context_for_ai/features/setting/data/repository/settings_repository_impl.dart';
+import 'package:context_for_ai/features/setting/model/app_setting.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';

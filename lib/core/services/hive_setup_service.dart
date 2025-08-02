@@ -1,7 +1,7 @@
 // lib/core/services/hive_setup_service.dart
 import 'package:context_for_ai/core/constants/hive_constants.dart';
-import 'package:context_for_ai/file_combiner/domain/hive_model/workspace_entry_hive.dart';
-import 'package:context_for_ai/seting/model/app_settings_hive.dart';
+import 'package:context_for_ai/features/file_combiner/domain/hive_model/workspace_entry_hive.dart';
+import 'package:context_for_ai/features/setting/model/app_settings_hive.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
