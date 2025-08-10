@@ -1,0 +1,6 @@
+build/
+.dart_tool/
+*.g.dart
+*.freezed.dart
+theme_ui_widgets/
+toastification/
