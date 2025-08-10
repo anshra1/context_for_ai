@@ -1,0 +1,1 @@
+export '../../data/models/filter_settings.dart';
