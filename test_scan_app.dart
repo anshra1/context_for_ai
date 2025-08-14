@@ -51,14 +51,16 @@ class DirectoryScannerPageState extends State<DirectoryScannerPage> {
 
     try {
       final nodes = await _dataSource.scanDirectory(_directoryPath);
+
       setState(() {
         _scannedNodes = nodes;
         _isScanning = false;
         // Initialize expanded state - root is expanded, folders collapsed
         _expandedNodes.clear();
+
         for (final node in nodes.values) {
           if (node.type == NodeType.folder) {
-            _expandedNodes[node.id] = node.parentId == null; // Only root expanded
+            _expandedNodes[node.id] = node.parentId == null; // Only root expanded// Only root expanded/ Only root expanded
           }
         }
       });
@@ -151,10 +153,10 @@ class DirectoryScannerPageState extends State<DirectoryScannerPage> {
   Widget _buildTree() {
     // Find root node
     final rootNode = _scannedNodes.values.firstWhere((node) => node.parentId == null);
-    return _buildTreeNode(rootNode, 0, [], true);
+    return _buildTreeNode(rootNode, 0);
   }
 
-  Widget _buildTreeNode(FileNode node, int depth, List<bool> lineStates, bool isLast) {
+  Widget _buildTreeNode(FileNode node, int depth) {
     final isFolder = node.type == NodeType.folder;
     final isExpanded = _expandedNodes[node.id] ?? false;
     final hasChildren = isFolder && node.childIds.isNotEmpty;
@@ -165,37 +167,9 @@ class DirectoryScannerPageState extends State<DirectoryScannerPage> {
         InkWell(
           onTap: hasChildren ? () => _toggleNodeExpansion(node.id) : null,
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+            padding: EdgeInsets.only(left: depth * 20.0, top: 4, bottom: 4),
             child: Row(
               children: [
-                // Build tree connection lines
-                ...List.generate(depth, (index) {
-                  if (index < lineStates.length) {
-                    return SizedBox(
-                      width: 20,
-                      child: Text(
-                        lineStates[index] ? '│' : ' ',
-                        style: TextStyle(
-                          color: Colors.grey[400],
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                    );
-                  }
-                  return const SizedBox(width: 20);
-                }),
-
-                // Connection line and arrow/icon
-                if (depth > 0) ...[
-                  SizedBox(
-                    width: 20,
-                    child: Text(
-                      isLast ? '└─' : '├─',
-                      style: TextStyle(color: Colors.grey[400], fontFamily: 'monospace'),
-                    ),
-                  ),
-                ],
-
                 // Expand/collapse arrow for folders
                 if (hasChildren) ...[
                   Icon(
@@ -203,11 +177,9 @@ class DirectoryScannerPageState extends State<DirectoryScannerPage> {
                     size: 16,
                     color: Colors.grey[600],
                   ),
-                  const SizedBox(width: 2),
-                ] else if (isFolder) ...[
-                  const SizedBox(width: 18),
+                  const SizedBox(width: 4),
                 ] else ...[
-                  const SizedBox(width: 18),
+                  const SizedBox(width: 20), // Space for files
                 ],
 
                 // File/folder icon
@@ -218,7 +190,7 @@ class DirectoryScannerPageState extends State<DirectoryScannerPage> {
                   size: 16,
                   color: isFolder ? Colors.blue : Colors.grey[600],
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
 
                 // File/folder name
                 Expanded(
@@ -245,17 +217,10 @@ class DirectoryScannerPageState extends State<DirectoryScannerPage> {
 
         // Show children if folder is expanded
         if (isFolder && hasChildren && isExpanded) ...[
-          ...node.childIds.asMap().entries.map((entry) {
-            final index = entry.key;
-            final childId = entry.value;
+          ...node.childIds.map((childId) {
             final childNode = _scannedNodes[childId];
             if (childNode != null) {
-              final isLastChild = index == node.childIds.length - 1;
-              final newLineStates = [...lineStates];
-              if (depth > 0) {
-                newLineStates.add(!isLast);
-              }
-              return _buildTreeNode(childNode, depth + 1, newLineStates, isLastChild);
+              return _buildTreeNode(childNode, depth + 1);
             }
             return const SizedBox.shrink();
           }),

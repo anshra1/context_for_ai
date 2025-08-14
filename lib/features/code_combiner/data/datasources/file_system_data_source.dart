@@ -16,18 +16,6 @@ abstract class FileSystemDataSource {
 
   /// Purpose: Read multiple files in parallel batches for better performance
   Future<Map<String, String>> readMultipleFiles(List<String> filePaths);
-
-  /// Purpose: Get file size in bytes for filtering large files
-  Future<int> getFileSize(String filePath);
-
-  /// Purpose: Check if path is accessible for reading
-  Future<bool> isAccessible(String path);
-
-  /// Purpose: Open directory picker dialog
-  Future<String?> pickDirectory();
-
-  /// Purpose: Validate if directory path is valid and accessible
-  Future<bool> isValidDirectory(String path);
 }
 
 class FileSystemDataSourceImpl implements FileSystemDataSource {
@@ -178,9 +166,83 @@ class FileSystemDataSourceImpl implements FileSystemDataSource {
     }
   }
 
+  /// Purpose: Read content from a single file with proper validation and size checking
   @override
   Future<String> readFileContent(String filePath) async {
-    throw UnimplementedError();
+    try {
+      // 1. Validate Input - Check if filePath is empty/null
+      if (filePath.isEmpty) {
+        throw const FileSystemException(
+          methodName: 'readFileContent',
+          originalError: 'File path is empty',
+          userMessage: 'Invalid file path',
+          title: 'Invalid File Path',
+        );
+      }
+
+      // 2. Check File Exists - Verify file exists using File(filePath).existsSync()
+      final file = File(filePath);
+      if (!file.existsSync()) {
+        throw FileSystemException(
+          methodName: 'readFileContent',
+          originalError: 'File not found: $filePath',
+          userMessage: 'File does not exist',
+          title: 'File Not Found',
+        );
+      }
+
+      // 3. Check Accessibility - Use existing isAccessible() method
+      if (!await isAccessible(filePath)) {
+        throw FileSystemException(
+          methodName: 'readFileContent',
+          originalError: 'Permission denied: $filePath',
+          userMessage: 'Permission denied to read file',
+          title: 'Permission Denied',
+        );
+      }
+
+      // 4. Check if Binary - Use existing isBinaryFile() method
+      if (isBinaryFile(filePath)) {
+        throw FileSystemException(
+          methodName: 'readFileContent',
+          originalError: 'Binary file detected: $filePath',
+          userMessage: 'Cannot read binary file as text',
+          title: 'Binary File Error',
+        );
+      }
+
+      // 5. Get File Size - Use existing getFileSize() method
+      final fileSizeBytes = await getFileSize(filePath);
+
+      // 6. Size Check - If > 5MB, throw FileSystemException with "File too large (X MB)" message
+      const maxSizeBytes = 5 * 1024 * 1024; // 5MB in bytes
+      if (fileSizeBytes > maxSizeBytes) {
+        final fileSizeMB = _convertBytesToMB(fileSizeBytes);
+        throw FileSystemException(
+          methodName: 'readFileContent',
+          originalError: 'File size exceeds limit: $fileSizeMB MB',
+          userMessage: 'File too large ($fileSizeMB MB). Use external editor.',
+          title: 'File Too Large',
+        );
+      }
+
+      // 7. Read File - Use File(filePath).readAsString() for files ≤ 5MB
+      final content = await file.readAsString();
+
+      // 8. Return content - Return the file content as String
+      return content;
+    } on FileSystemException {
+      rethrow;
+    } catch (e, stackTrace) {
+      throw FileSystemException(
+        methodName: 'readFileContent',
+        originalError: e.toString(),
+        userMessage: 'Failed to read file content',
+        title: 'File Read Error',
+        stackTrace: stackTrace.toString(),
+        debugDetails: 'File path: $filePath',
+      );
+    }
   }
 
   Future<bool> _isFileReadable(String filePath) async {
@@ -209,7 +271,7 @@ class FileSystemDataSourceImpl implements FileSystemDataSource {
   }
 
   /// Purpose: Check if the path is accessible for reading
-  @override
+
   Future<bool> isAccessible(String path) async {
     try {
       // Determine what the path points to without following symlinks.
@@ -226,7 +288,7 @@ class FileSystemDataSourceImpl implements FileSystemDataSource {
         return true;
       } else {
         // Try to read file stats to check accessibility
-       File(path).statSync();
+        File(path).statSync();
         return true;
       }
     } on Exception catch (_) {
@@ -241,10 +303,7 @@ class FileSystemDataSourceImpl implements FileSystemDataSource {
     Map<String, FileNode> nodes,
   ) async {
     try {
-      final entities = await directory
-          .list(followLinks: false)
-          .where((entity) => !_isHiddenFile(entity.path))
-          .toList();
+      final entities = await directory.list(followLinks: false).toList();
 
       final childIds = <String>[];
 
@@ -294,45 +353,11 @@ class FileSystemDataSourceImpl implements FileSystemDataSource {
         (entity as File).readAsStringSync();
       }
       return true;
-    } catch (e) {
+    } on Exception catch (_) {
       return false;
     }
   }
 
-  /// Purpose: Check if a file or directory is hidden
-  bool _isHiddenFile(String pathString) {
-    try {
-      final name = path.basename(pathString);
-
-      // Unix/Linux/macOS hidden files start with dot
-      if (name.startsWith('.')) {
-        return true;
-      }
-
-      // Windows hidden files check
-      if (Platform.isWindows) {
-        try {
-          // On Windows, hidden attribute would need platform-specific code
-          // For now, just check for common hidden directories
-          final hiddenDirs = {
-            'System Volume Information',
-            r'$Recycle.Bin',
-            'pagefile.sys',
-            'hiberfil.sys',
-          };
-          return hiddenDirs.contains(name);
-        } on FileSystemException {
-          return false;
-        }
-      }
-
-      return false;
-    } on Exception {
-      return false;
-    }
-  }
-
-  @override
   Future<int> getFileSize(String filePath) async {
     try {
       final file = File(filePath);
@@ -356,7 +381,7 @@ class FileSystemDataSourceImpl implements FileSystemDataSource {
   }
 
   int _convertBytesToMB(int bytes) {
-    throw UnimplementedError();
+    return (bytes / (1024 * 1024)).round();
   }
 
   bool isBinaryFile(String filePath) {
@@ -409,20 +434,6 @@ class FileSystemDataSourceImpl implements FileSystemDataSource {
     };
   }
 
-  @override
-  Future<String?> pickDirectory() async {
-    throw UnimplementedError();
-  }
-
-  String? _getLastUsedDirectory() {
-    throw UnimplementedError();
-  }
-
-  void _saveLastUsedDirectory(String path) {
-    throw UnimplementedError();
-  }
-
-  @override
   Future<bool> isValidDirectory(String path) async {
     try {
       if (path.isEmpty) return false;
@@ -430,7 +441,7 @@ class FileSystemDataSourceImpl implements FileSystemDataSource {
       return directory.existsSync() &&
           _isActualDirectory(path) &&
           _hasReadPermission(path);
-    } catch (e) {
+    } on Exception catch (_) {
       return false;
     }
   }
@@ -447,7 +458,7 @@ class FileSystemDataSourceImpl implements FileSystemDataSource {
       // Try to list directory contents to test read permission
       directory.listSync();
       return true;
-    } catch (e) {
+    } on Exception catch (_) {
       return false;
     }
   }
@@ -457,7 +468,7 @@ class FileSystemDataSourceImpl implements FileSystemDataSource {
       final entity = Directory(path);
       return entity.existsSync() &&
           entity.statSync().type == FileSystemEntityType.directory;
-    } catch (e) {
+    } on Exception catch (_) {
       return false;
     }
   }
