@@ -19,8 +19,6 @@ Future<void> main() async {
         statusBarIconBrightness: Brightness.dark,
       ),
     );
-    
-    await init();
 
     runApp(const ToastificationWrapper(child: RootApp()));
   } catch (error, stackTrace) {

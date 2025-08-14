@@ -1,27 +1,37 @@
-class RecentWorkspace {
-  final String path;
-  final String name;
-  final DateTime lastAccessed;
-  final bool isFavorite;
-  
-  RecentWorkspace({
-    required this.path,
-    required this.name,
-    required this.lastAccessed,
-    required this.isFavorite,
-  });
-  
-  RecentWorkspace copyWith({
-    String? path,
-    String? name,
-    DateTime? lastAccessed,
-    bool? isFavorite,
-  }) {
-    return RecentWorkspace(
-      path: path ?? this.path,
-      name: name ?? this.name,
-      lastAccessed: lastAccessed ?? this.lastAccessed,
-      isFavorite: isFavorite ?? this.isFavorite,
-    );
-  }
+// Last Edited: 2025-08-12 00:00:00
+// Edit History:
+//      - 2025-08-12 00:00:00: Removed name field and added displayName getter
+//        - Purpose: Simplify API by auto-extracting folder name from path
+//      - 2025-08-11 14:39:00: Applied 80-character line limit to edit
+//        comments - Purpose: Improve readability and maintain consistent
+//        formatting
+//      - 2025-08-11 14:36:00: Converted to Freezed model with JSON
+//        serialization - Purpose: Eliminate boilerplate code and add
+//        type-safe serialization
+
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'recent_workspace.freezed.dart';
+part 'recent_workspace.g.dart';
+
+@freezed
+class RecentWorkspace with _$RecentWorkspace {
+  const factory RecentWorkspace({
+    required String path,
+    required DateTime lastAccessed,
+    required bool isFavorite,
+  }) = _RecentWorkspace;
+
+  factory RecentWorkspace.fromJson(Map<String, dynamic> json) =>
+      _$RecentWorkspaceFromJson(json);
+
+  const RecentWorkspace._();
+
+  /// Extract display name from path (folder name)
+  // String get displayName {
+  //   if (path.isEmpty) return 'Unknown';
+  //   final segments = path.replaceAll(r'\', '/').split('/');
+  //   final lastSegment = segments.lastWhere((s) => s.isNotEmpty, orElse: () => '');
+  //   return lastSegment.isEmpty ? 'Root' : lastSegment;
+  // }
 }

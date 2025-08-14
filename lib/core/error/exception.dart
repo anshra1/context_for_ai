@@ -205,6 +205,20 @@ class InitializationException extends AppException {
   });
 }
 
+/// Exception for file system operations
+class FileSystemException extends AppException {
+  const FileSystemException({
+    required super.methodName,
+    required super.originalError,
+    required super.userMessage,
+    required super.title,
+    super.debugDetails,
+    super.stackTrace,
+    super.priority = ErrorPriority.high,
+    super.isRecoverable = true,
+  });
+}
+
 /// Generic exception for unclassified errors
 class UnknownException extends AppException {
   const UnknownException({

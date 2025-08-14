@@ -1,7 +1,18 @@
-import 'node_type.dart';
-import 'selection_state.dart';
+import 'package:context_for_ai/features/code_combiner/data/models/node_type.dart';
+import 'package:context_for_ai/features/code_combiner/data/models/selection_state.dart';
 
 class FileNode {
+  FileNode({
+    required this.id,
+    required this.name,
+    required this.path,
+    required this.type,
+    required this.selectionState,
+    required this.isExpanded,
+    required this.childIds,
+    this.parentId,
+  });
+  
   final String id;
   final String name;
   final String path;
@@ -10,18 +21,7 @@ class FileNode {
   final bool isExpanded;
   final String? parentId;
   final List<String> childIds;
-  
-  FileNode({
-    required this.id,
-    required this.name, 
-    required this.path,
-    required this.type,
-    required this.selectionState,
-    required this.isExpanded,
-    this.parentId,
-    required this.childIds,
-  });
-  
+
   FileNode copyWith({
     String? id,
     String? name,

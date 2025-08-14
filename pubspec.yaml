@@ -47,6 +47,8 @@ dependencies:
   json_annotation: ^4.8.1
   logger: ^2.6.0
   mocktail: ^1.0.4
+  path: ^1.8.0
+  path_provider: ^2.1.4
   shared_preferences: ^2.5.3
   theme_ui_widgets:
     git:

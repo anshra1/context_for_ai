@@ -1,0 +1,48 @@
+{
+  "files.exclude": {
+    "**/*.freezed.dart": true,
+    "**/*.g.dart": true,
+    "**/*.mocks.dart": true,
+    "**/*.config.dart": true,
+    "**/build/": true,
+    "**/.dart_tool/": true,
+    "**/.flutter-plugins": true,
+    "**/.flutter-plugins-dependencies": true,
+    "**/pubspec.lock": false,
+    "**/.packages": true,
+    "**/.metadata": true,
+    "**/windows/": true,
+    "**/macos/": true,
+    "**/web/": true,
+    "**/ios/": true,
+    "**/android/": true,
+    "**/linux/": true
+  },
+  "search.exclude": {
+    "**/*.freezed.dart": true,
+    "**/*.g.dart": true,
+    "**/*.mocks.dart": true,
+    "**/*.config.dart": true,
+    "**/build/": true,
+    "**/.dart_tool/": true,
+    "**/windows/": true,
+    "**/macos/": true,
+    "**/web/": true,
+    "**/ios/": true,
+    "**/android/": true,
+    "**/linux/": true
+  },
+  "files.watcherExclude": {
+    "**/*.freezed.dart": true,
+    "**/*.g.dart": true,
+    "**/*.mocks.dart": true,
+    "**/build/": true,
+    "**/.dart_tool/": true,
+    "**/windows/": true,
+    "**/macos/": true,
+    "**/web/": true,
+    "**/ios/": true,
+    "**/android/": true,
+    "**/linux/": true
+  }
+}
