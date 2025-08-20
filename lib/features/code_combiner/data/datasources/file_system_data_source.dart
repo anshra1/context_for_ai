@@ -1,21 +1,21 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:context_for_ai/core/error/exception.dart';
 import 'package:context_for_ai/features/code_combiner/data/enum/node_type.dart';
 import 'package:context_for_ai/features/code_combiner/data/enum/selection_state.dart';
+import 'package:context_for_ai/features/code_combiner/data/models/app_settings.dart';
+import 'package:context_for_ai/features/code_combiner/data/models/export_preview.dart';
 import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
 import 'package:path/path.dart' as path;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 abstract class FileSystemDataSource {
-  /// Purpose: Scan directory structure and build file tree nodes map
   Future<Map<String, FileNode>> scanDirectory(String directoryPath);
 
-  /// Purpose: Read content from a single file with proper encoding detection
   Future<String> readFileContent(String filePath);
-
-  /// Purpose: Read multiple files in parallel batches for better performance
-  Future<Map<String, String>> readMultipleFiles(List<String> filePaths);
+  Future<ExportPreview> combineAndExportFiles(List<String> filePaths);
 }
 
 class FileSystemDataSourceImpl implements FileSystemDataSource {
@@ -105,8 +105,8 @@ class FileSystemDataSourceImpl implements FileSystemDataSource {
     }
   }
 
-  /// Purpose: Validate if the provided path is valid and safe
   bool _isValidPath(String pathString) {
+    /// Purpose: Validate if the provided path is valid and safe
     try {
       if (pathString.isEmpty) return false;
 
@@ -125,8 +125,8 @@ class FileSystemDataSourceImpl implements FileSystemDataSource {
     }
   }
 
-  /// Purpose: Normalize the path for consistent handling across platforms
   String _normalizePath(String pathString) {
+    /// Purpose: Normalize the path for consistent handling across platforms
     try {
       // Normalize the path using the path package
       // it erase all the extra spaces characters
@@ -243,31 +243,6 @@ class FileSystemDataSourceImpl implements FileSystemDataSource {
         debugDetails: 'File path: $filePath',
       );
     }
-  }
-
-  Future<bool> _isFileReadable(String filePath) async {
-    throw UnimplementedError();
-  }
-
-  String _detectFileEncoding(String filePath) {
-    throw UnimplementedError();
-  }
-
-  Future<String> _readWithEncoding(String filePath, String encoding) async {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Map<String, String>> readMultipleFiles(List<String> filePaths) async {
-    throw UnimplementedError();
-  }
-
-  List<List<String>> _createBatches(List<String> filePaths, int batchSize) {
-    throw UnimplementedError();
-  }
-
-  Future<Map<String, String>> _processBatch(List<String> batch) async {
-    throw UnimplementedError();
   }
 
   /// Purpose: Check if the path is accessible for reading
@@ -446,10 +421,6 @@ class FileSystemDataSourceImpl implements FileSystemDataSource {
     }
   }
 
-  bool _directoryExists(String path) {
-    throw UnimplementedError();
-  }
-
   bool _hasReadPermission(String path) {
     try {
       final directory = Directory(path);
@@ -471,5 +442,492 @@ class FileSystemDataSourceImpl implements FileSystemDataSource {
     } on Exception catch (_) {
       return false;
     }
+  }
+
+  /// Method Purpose: Takes a list of file paths, reads all their
+  /// contents, combines into one string, splits if too large, and returns
+  /// list of created files
+  @override
+  Future<ExportPreview> combineAndExportFiles(List<String> filePaths) async {
+    final failedFilePaths = <String>[];
+    final successfulCombinedFilesPaths = <String>[];
+
+    try {
+      // Step 1: Load AppSettings from SharedPreferences
+      final appSettings = await _loadAppSettings();
+
+      // Step 2: Read each file and track failed/successful files
+      final validFilesContent = await _readAndFilterFilesWithTracking(
+        filePaths,
+        appSettings.fileSplitSizeInMB,
+        failedFilePaths,
+        successfulCombinedFilesPaths,
+        appSettings,
+      );
+
+      // Step 3: Combine valid file contents with headers and summary
+      final combinedContent = _combineWithHeaders(
+        validFilesContent,
+        successfulCombinedFilesPaths,
+        failedFilePaths,
+        filePaths.length,
+      );
+
+      // Step 4: Calculate statistics
+      final estimatedTokenCount = _estimateTokenCount(combinedContent);
+      final estimatedSizeInMB = _calculateSizeInMB(combinedContent);
+      final contentChunks = _splitContent(combinedContent, appSettings.fileSplitSizeInMB);
+      final estimatedPartsCount = contentChunks.length;
+
+      // Step 5: Save split files to defaultExportLocation directory
+      final createdFiles = await _saveFiles(
+        contentChunks,
+        appSettings.defaultExportLocation,
+      );
+
+      // Step 6: Return detailed ExportPreview
+      return ExportPreview(
+        estimatedTokenCount: estimatedTokenCount,
+        estimatedSizeInMB: estimatedSizeInMB,
+        estimatedPartsCount: estimatedPartsCount,
+        totalFiles: filePaths.length,
+        failedFiles: failedFilePaths.length,
+        failedFilePaths: failedFilePaths,
+        successfulCombinedFilesPaths: successfulCombinedFilesPaths,
+        successedReturnedFiles: createdFiles,
+      );
+    } catch (e, stackTrace) {
+      throw FileSystemException(
+        methodName: 'combineAndExportFiles',
+        originalError: e.toString(),
+        userMessage: 'Failed to combine and export files',
+        title: 'Export Failed',
+        stackTrace: stackTrace.toString(),
+        debugDetails: 'File paths: ${filePaths.join(', ')}',
+      );
+    }
+  }
+
+  /// Step 1: Load AppSettings from SharedPreferences
+  Future<AppSettings> _loadAppSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString('app_settings');
+
+      if (jsonString == null || jsonString.isEmpty) {
+        return AppSettings.defaultsWithDocumentsPath();
+      }
+
+      final data = Map<String, dynamic>.from(
+        jsonDecode(jsonString) as Map,
+      );
+      return AppSettings.fromJson(data);
+    } on Exception {
+      // Fallback to defaults if loading fails
+      return AppSettings.defaultsWithDocumentsPath();
+    }
+  }
+
+  /// Step 2: Read and filter files based on size limit with batch processing
+  Future<Map<String, String>> _readAndFilterFiles(
+    List<String> filePaths,
+    int maxSizeInMB,
+  ) async {
+    final validFiles = <String, String>{};
+    const batchSize = 10;
+    final maxSizeBytes = maxSizeInMB * 1024 * 1024;
+
+    // Process files in batches
+    for (var i = 0; i < filePaths.length; i += batchSize) {
+      final end = (i + batchSize < filePaths.length) ? i + batchSize : filePaths.length;
+      final batch = filePaths.sublist(i, end);
+
+      await Future.wait(
+        batch.map((filePath) async {
+          try {
+            // Check if file exists and is accessible
+            final file = File(filePath);
+            if (!file.existsSync() || !await isAccessible(filePath)) {
+              return;
+            }
+
+            // Check if file is binary
+            if (isBinaryFile(filePath)) {
+              return;
+            }
+
+            // Check file size
+            final fileSize = await getFileSize(filePath);
+            if (fileSize > maxSizeBytes) {
+              return; // Skip oversized files
+            }
+
+            // Read file content
+            final content = await readFileContent(filePath);
+            validFiles[filePath] = content;
+          } on Exception {
+            // Skip files that can't be read
+            return;
+          }
+        }),
+      );
+    }
+
+    return validFiles;
+  }
+
+  /// Step 2 Enhanced: Read and filter files with tracking of failed/successful files
+  Future<Map<String, String>> _readAndFilterFilesWithTracking(
+    List<String> filePaths,
+    int maxSizeInMB,
+    List<String> failedFilePaths,
+    List<String> successfulCombinedFilesPaths,
+    AppSettings appSettings,
+  ) async {
+    final validFiles = <String, String>{};
+    const batchSize = 10;
+    final maxSizeBytes = maxSizeInMB * 1024 * 1024;
+
+    // Process files in batches
+    for (var i = 0; i < filePaths.length; i += batchSize) {
+      final end = (i + batchSize < filePaths.length) ? i + batchSize : filePaths.length;
+      final batch = filePaths.sublist(i, end);
+
+      await Future.wait(
+        batch.map((filePath) async {
+          try {
+            // Check if file exists and is accessible
+            final file = File(filePath);
+            if (!file.existsSync() || !await isAccessible(filePath)) {
+              failedFilePaths.add(filePath);
+              return;
+            }
+
+            // Check if file is binary
+            if (isBinaryFile(filePath)) {
+              failedFilePaths.add(filePath);
+              return;
+            }
+
+            // Check file size
+            final fileSize = await getFileSize(filePath);
+            if (fileSize > maxSizeBytes) {
+              failedFilePaths.add(filePath);
+              return; // Skip oversized files
+            }
+
+            // Read file content
+            var content = await readFileContent(filePath);
+
+            // Apply comment stripping if enabled
+            content = _stripCommentsFromContent(
+              content,
+              appSettings.stripCommentsFromCode,
+            );
+
+            validFiles[filePath] = content;
+            successfulCombinedFilesPaths.add(filePath);
+          } on Exception {
+            // Track files that can't be read
+            failedFilePaths.add(filePath);
+            return;
+          }
+        }),
+      );
+    }
+
+    return validFiles;
+  }
+
+  /// Calculate estimated token count (approximate: characters / 4)
+  int _estimateTokenCount(String content) {
+    // Common approximation: 1 token ≈ 4 characters for English text
+    return (content.length / 4).round();
+  }
+
+  /// Calculate content size in MB
+  double _calculateSizeInMB(String content) {
+    final sizeInBytes = content.codeUnits.length;
+    return sizeInBytes / (1024 * 1024);
+  }
+
+  /// Strip comments from code content selectively
+  /// Removes: // single-line comments and /* multi-line comments */
+  /// Preserves: /// documentation comments and /** doc blocks */
+  String _stripCommentsFromContent(String content, bool shouldStrip) {
+    if (!shouldStrip) return content;
+
+    final lines = content.split('\n');
+    final processedLines = <String>[];
+    var insideMultiLineComment = false;
+
+    for (final line in lines) {
+      final processedLine = line;
+      var i = 0;
+      final result = StringBuffer();
+
+      while (i < processedLine.length) {
+        // Handle multi-line comments /* */
+        if (!insideMultiLineComment &&
+            i < processedLine.length - 1 &&
+            processedLine[i] == '/' &&
+            processedLine[i + 1] == '*') {
+          // Check if it's a documentation comment /** */
+          final isDocComment =
+              i < processedLine.length - 2 && processedLine[i + 2] == '*';
+
+          if (isDocComment) {
+            // Keep documentation comment, find the end
+            final endIndex = processedLine.indexOf('*/', i + 3);
+            if (endIndex != -1) {
+              result.write(processedLine.substring(i, endIndex + 2));
+              i = endIndex + 2;
+            } else {
+              // Multi-line doc comment, keep this line
+              result.write(processedLine.substring(i));
+              break;
+            }
+          } else {
+            // Regular multi-line comment, start removing
+            final endIndex = processedLine.indexOf('*/', i + 2);
+            if (endIndex != -1) {
+              // Single-line /* */ comment, skip it
+              i = endIndex + 2;
+            } else {
+              // Multi-line comment starts here, skip rest of line
+              insideMultiLineComment = true;
+              break;
+            }
+          }
+        }
+        // Handle end of multi-line comment
+        else if (insideMultiLineComment) {
+          final endIndex = processedLine.indexOf('*/', i);
+          if (endIndex != -1) {
+            insideMultiLineComment = false;
+            i = endIndex + 2;
+          } else {
+            // Still inside comment, skip entire line
+            break;
+          }
+        }
+        // Handle single-line comments //
+        else if (i < processedLine.length - 1 &&
+            processedLine[i] == '/' &&
+            processedLine[i + 1] == '/') {
+          // Check if it's a documentation comment ///
+          final isDocComment =
+              i < processedLine.length - 2 && processedLine[i + 2] == '/';
+
+          if (isDocComment) {
+            // Keep documentation comment
+            result.write(processedLine.substring(i));
+            break;
+          } else {
+            // Regular single-line comment, remove rest of line
+            break;
+          }
+        }
+        // Handle strings to avoid removing comments inside strings
+        else if (processedLine[i] == '"' || processedLine[i] == "'") {
+          final quote = processedLine[i];
+          result.write(processedLine[i]);
+          i++;
+
+          // Find closing quote, handling escape sequences
+          while (i < processedLine.length) {
+            if (processedLine[i] == r'\' && i < processedLine.length - 1) {
+              // Escape sequence, add both characters
+              result
+                ..write(processedLine[i])
+                ..write(processedLine[i + 1]);
+              i += 2;
+            } else if (processedLine[i] == quote) {
+              // Found closing quote
+              result.write(processedLine[i]);
+              i++;
+              break;
+            } else {
+              result.write(processedLine[i]);
+              i++;
+            }
+          }
+        } else {
+          result.write(processedLine[i]);
+          i++;
+        }
+      }
+
+      // Add processed line if not completely inside a multi-line comment
+      if (!insideMultiLineComment || result.isNotEmpty) {
+        processedLines.add(result.toString().trimRight());
+      }
+    }
+
+    return processedLines.join('\n');
+  }
+
+  /// Step 3: Combine file contents with path headers and summary
+  String _combineWithHeaders(
+    Map<String, String> filesContent,
+    List<String> successfulPaths,
+    List<String> failedPaths,
+    int totalFiles,
+  ) {
+    final buffer = StringBuffer()
+      // Add summary header at the top
+      ..writeln('EXPORT SUMMARY')
+      ..writeln('==============')
+      ..writeln('Total Files Processed: $totalFiles')
+      ..writeln('Successfully Combined: ${successfulPaths.length} files')
+      ..writeln('Failed Files: ${failedPaths.length} files')
+      ..writeln();
+
+    // Add successful files list
+    if (successfulPaths.isNotEmpty) {
+      buffer
+        ..writeln('SUCCESSFULLY COMBINED FILES:')
+        ..writeln('----------------------------');
+      for (final filePath in successfulPaths) {
+        buffer.writeln('✅ $filePath');
+      }
+      buffer.writeln();
+    }
+
+    // Add failed files list with reasons
+    if (failedPaths.isNotEmpty) {
+      buffer
+        ..writeln('FAILED FILES:')
+        ..writeln('-------------');
+      for (final filePath in failedPaths) {
+        final reason = _getFailureReason(filePath);
+        buffer.writeln('❌ $filePath ($reason)');
+      }
+      buffer.writeln();
+    }
+
+    // Add separator before actual content
+    buffer
+      ..writeln('COMBINED CONTENT:')
+      ..writeln('=================')
+      ..writeln();
+
+    // Add actual file contents with headers
+    for (final entry in filesContent.entries) {
+      final filePath = entry.key;
+      final content = entry.value;
+
+      buffer
+        ..writeln('=== $filePath ===')
+        ..writeln(content)
+        ..writeln(); // Add empty line between files
+    }
+
+    return buffer.toString();
+  }
+
+  /// Helper method to determine failure reason for a file
+  String _getFailureReason(String filePath) {
+    final file = File(filePath);
+
+    // Check if file doesn't exist
+    if (!file.existsSync()) {
+      return 'File not found';
+    }
+
+    // Check if it's a binary file
+    if (isBinaryFile(filePath)) {
+      return 'Binary file - skipped';
+    }
+
+    // Check if file is too large (approximate check)
+    try {
+      final size = file.lengthSync();
+      if (size > 5 * 1024 * 1024) {
+        // > 5MB
+        return 'File too large - exceeds size limit';
+      }
+    } on Exception {
+      return 'Access denied or permission error';
+    }
+
+    return 'Unknown error - failed to read';
+  }
+
+  /// Step 4: Split content into chunks based on size limit
+  List<String> _splitContent(String content, int maxSizeInMB) {
+    final maxSizeBytes = maxSizeInMB * 1024 * 1024;
+    final contentBytes = content.codeUnits.length;
+
+    if (contentBytes <= maxSizeBytes) {
+      return [content];
+    }
+
+    final chunks = <String>[];
+    var currentIndex = 0;
+
+    while (currentIndex < content.length) {
+      var endIndex = currentIndex + maxSizeBytes;
+      if (endIndex > content.length) {
+        endIndex = content.length;
+      }
+
+      // Try to break at a newline to avoid splitting in the middle of a line
+      if (endIndex < content.length) {
+        final lastNewlineIndex = content.lastIndexOf('\n', endIndex);
+        if (lastNewlineIndex > currentIndex) {
+          endIndex = lastNewlineIndex + 1;
+        }
+      }
+
+      chunks.add(content.substring(currentIndex, endIndex));
+      currentIndex = endIndex;
+    }
+
+    return chunks;
+  }
+
+  /// Step 5: Save split files with timestamp-based filename generation
+  Future<List<File>> _saveFiles(
+    List<String> contentChunks,
+    String? exportLocation,
+  ) async {
+    final exportDir = await _getExportDirectory(exportLocation);
+    final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-').split('.')[0];
+    final createdFiles = <File>[];
+
+    for (var i = 0; i < contentChunks.length; i++) {
+      final filename = contentChunks.length == 1
+          ? 'combined_export_$timestamp.txt'
+          : 'combined_export_${timestamp}_part${i + 1}.txt';
+
+      final file = File(path.join(exportDir.path, filename));
+      await file.writeAsString(contentChunks[i]);
+      createdFiles.add(file);
+    }
+
+    return createdFiles;
+  }
+
+  /// Helper: Get or create export directory
+  Future<Directory> _getExportDirectory(String? exportLocation) async {
+    late Directory exportDir;
+
+    if (exportLocation != null && exportLocation.isNotEmpty) {
+      exportDir = Directory(exportLocation);
+    } else {
+      // Fallback to Documents directory
+      final appSettings = await AppSettings.defaultsWithDocumentsPath();
+      exportDir = Directory(
+        appSettings.defaultExportLocation ?? '${Directory.current.path}/exports',
+      );
+    }
+
+    // Create directory if it doesn't exist
+    if (!exportDir.existsSync()) {
+      exportDir = await exportDir.create(recursive: true);
+    }
+
+    return exportDir;
   }
 }

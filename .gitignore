@@ -5,3 +5,4 @@ build/
 theme_ui_widgets/
 toastification/
 mcp-flutter-knowledge/
+.claude/

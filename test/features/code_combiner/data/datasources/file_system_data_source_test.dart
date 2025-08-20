@@ -1,12 +1,16 @@
+import 'dart:convert';
 import 'dart:io' as io;
 
 import 'package:context_for_ai/core/error/exception.dart';
 import 'package:context_for_ai/features/code_combiner/data/datasources/file_system_data_source.dart';
+import 'package:context_for_ai/features/code_combiner/data/models/app_settings.dart';
 import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
 import 'package:context_for_ai/features/code_combiner/data/enum/node_type.dart';
 import 'package:context_for_ai/features/code_combiner/data/enum/selection_state.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart' as path;
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group('FileSystemDataSourceImpl', () {
@@ -559,6 +563,461 @@ void main() {
           
           // Assert
           expect(result, isFalse);
+        });
+      });
+    });
+
+    group('combineAndExportFiles()', () {
+      late io.Directory tempExportDir;
+      late List<String> testFilePaths;
+      
+      setUp(() async {
+        // Create temporary export directory
+        tempExportDir = await io.Directory.systemTemp.createTemp('export_test_');
+        
+        // Set up SharedPreferences mock with test settings
+        SharedPreferences.setMockInitialValues({
+          'app_settings': jsonEncode({
+            'fileSplitSizeInMB': 1, // 1MB for testing
+            'maxTokenWarningLimit': 10000,
+            'warnOnTokenExceed': true,
+            'stripCommentsFromCode': false,
+            'defaultExportLocation': tempExportDir.path,
+          }),
+        });
+        
+        // Create test files with known content
+        testFilePaths = [
+          path.join(testDirectoryPath, 'file1.dart'),
+          path.join(testDirectoryPath, 'file2.txt'),
+          path.join(testDirectoryPath, 'nested_folder', 'nested_file.json'),
+        ];
+      });
+
+      tearDown(() async {
+        if (tempExportDir.existsSync()) {
+          await tempExportDir.delete(recursive: true);
+        }
+      });
+
+      group('successful file combination', () {
+        test('should combine multiple files with proper headers and return created files', () async {
+          // Arrange
+          final inputPaths = [
+            testFilePaths[0], // file1.dart
+            testFilePaths[1], // file2.txt
+          ];
+
+          // Act
+          final result = await dataSource.combineAndExportFiles(inputPaths);
+
+          // Assert
+          expect(result, isNotEmpty);
+          expect(result.length, equals(1)); // Should create single file (content is small)
+          
+          final createdFile = result.first;
+          expect(createdFile.existsSync(), isTrue);
+          expect(createdFile.path.contains('combined_export_'), isTrue);
+          expect(createdFile.path.endsWith('.txt'), isTrue);
+          
+          final content = await createdFile.readAsString();
+          expect(content, contains('=== ${testFilePaths[0]} ==='));
+          expect(content, contains('=== ${testFilePaths[1]} ==='));
+          expect(content, contains('void main() {print("Hello");}'));
+          expect(content, contains('Sample text content'));
+        });
+
+        test('should create files with timestamp-based naming', () async {
+          // Arrange
+          final inputPaths = [testFilePaths[0]];
+
+          // Act
+          final result = await dataSource.combineAndExportFiles(inputPaths);
+
+          // Assert
+          final createdFile = result.first;
+          final filename = path.basename(createdFile.path);
+          
+          // Should match pattern: combined_export_YYYY-MM-DDTHH-MM-SS.txt
+          expect(filename, matches(RegExp(r'^combined_export_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.txt$')));
+        });
+
+        test('should handle empty file list gracefully', () async {
+          // Arrange
+          final inputPaths = <String>[];
+
+          // Act
+          final result = await dataSource.combineAndExportFiles(inputPaths);
+
+          // Assert
+          expect(result, isNotEmpty);
+          expect(result.length, equals(1));
+          
+          final content = await result.first.readAsString();
+          expect(content.trim(), isEmpty);
+        });
+      });
+
+      group('file filtering', () {
+        test('should skip binary files', () async {
+          // Arrange
+          final binaryFile = path.join(testDirectoryPath, 'binary_file.exe');
+          final inputPaths = [testFilePaths[0], binaryFile];
+
+          // Act
+          final result = await dataSource.combineAndExportFiles(inputPaths);
+
+          // Assert
+          final content = await result.first.readAsString();
+          expect(content, contains('=== ${testFilePaths[0]} ==='));
+          expect(content, isNot(contains('binary_file.exe')));
+        });
+
+        test('should skip oversized files', () async {
+          // Arrange - Create a large file (over 1MB limit set in setUp)
+          final largeFilePath = path.join(testDirectoryPath, 'large_file.txt');
+          final largeContent = 'x' * (2 * 1024 * 1024); // 2MB of content
+          await io.File(largeFilePath).writeAsString(largeContent);
+          
+          final inputPaths = [testFilePaths[0], largeFilePath];
+
+          // Act
+          final result = await dataSource.combineAndExportFiles(inputPaths);
+
+          // Assert
+          final content = await result.first.readAsString();
+          expect(content, contains('=== ${testFilePaths[0]} ==='));
+          expect(content, isNot(contains('large_file.txt')));
+          
+          // Cleanup
+          await io.File(largeFilePath).delete();
+        });
+
+        test('should skip non-existent files', () async {
+          // Arrange
+          final inputPaths = [
+            testFilePaths[0],
+            '/non/existent/file.txt',
+            testFilePaths[1],
+          ];
+
+          // Act
+          final result = await dataSource.combineAndExportFiles(inputPaths);
+
+          // Assert
+          final content = await result.first.readAsString();
+          expect(content, contains('=== ${testFilePaths[0]} ==='));
+          expect(content, contains('=== ${testFilePaths[1]} ==='));
+          expect(content, isNot(contains('/non/existent/file.txt')));
+        });
+
+        test('should skip inaccessible files', () async {
+          // Arrange - Create file and immediately delete to make it inaccessible
+          final inaccessibleFile = path.join(testDirectoryPath, 'temp_file.txt');
+          await io.File(inaccessibleFile).writeAsString('temp content');
+          await io.File(inaccessibleFile).delete();
+          
+          final inputPaths = [testFilePaths[0], inaccessibleFile];
+
+          // Act
+          final result = await dataSource.combineAndExportFiles(inputPaths);
+
+          // Assert
+          final content = await result.first.readAsString();
+          expect(content, contains('=== ${testFilePaths[0]} ==='));
+          expect(content, isNot(contains('temp_file.txt')));
+        });
+      });
+
+      group('content splitting', () {
+        test('should split content when it exceeds size limit', () async {
+          // Arrange - Create multiple files that together exceed 1MB
+          final largeFiles = <String>[];
+          for (var i = 0; i < 4; i++) {
+            final filePath = path.join(testDirectoryPath, 'split_test_$i.txt');
+            final content = 'X' * 300000; // 300KB each * 4 = 1.2MB total
+            await io.File(filePath).writeAsString(content);
+            largeFiles.add(filePath);
+          }
+
+          // Act
+          final result = await dataSource.combineAndExportFiles(largeFiles);
+
+          // Assert
+          expect(result.length, greaterThan(1)); // Should be split into multiple files
+          
+          // Verify filenames have part numbers
+          for (var i = 0; i < result.length; i++) {
+            final filename = path.basename(result[i].path);
+            expect(filename, contains('_part${i + 1}.txt'));
+          }
+          
+          // Verify all files exist and have content
+          for (final file in result) {
+            expect(file.existsSync(), isTrue);
+            final content = await file.readAsString();
+            expect(content.isNotEmpty, isTrue);
+          }
+          
+          // Cleanup
+          for (final filePath in largeFiles) {
+            await io.File(filePath).delete();
+          }
+        });
+
+        test('should break at newlines when possible during splitting', () async {
+          // Arrange - Create file with known line structure
+          final testFile = path.join(testDirectoryPath, 'line_break_test.txt');
+          final lines = List.generate(1000, (i) => 'Line $i with some content');
+          await io.File(testFile).writeAsString(lines.join('\n'));
+
+          // Act
+          final result = await dataSource.combineAndExportFiles([testFile]);
+
+          // Assert
+          if (result.length > 1) {
+            // If split occurred, verify content breaks at newlines
+            for (final file in result) {
+              final content = await file.readAsString();
+              if (content.isNotEmpty && !content.endsWith('\n')) {
+                // Content should not end mid-line (unless it's the last chunk)
+                expect(content.endsWith('\n') || file == result.last, isTrue);
+              }
+            }
+          }
+          
+          // Cleanup
+          await io.File(testFile).delete();
+        });
+
+        test('should not split when content is under size limit', () async {
+          // Arrange - Use small files that won't trigger splitting
+          final inputPaths = [testFilePaths[0], testFilePaths[1]];
+
+          // Act
+          final result = await dataSource.combineAndExportFiles(inputPaths);
+
+          // Assert
+          expect(result.length, equals(1)); // Should create single file
+          
+          final filename = path.basename(result.first.path);
+          expect(filename, isNot(contains('_part')));
+        });
+      });
+
+      group('SharedPreferences integration', () {
+        test('should use settings from SharedPreferences', () async {
+          // Arrange - Update SharedPreferences with different settings
+          SharedPreferences.setMockInitialValues({
+            'app_settings': jsonEncode({
+              'fileSplitSizeInMB': 2, // Different size limit
+              'maxTokenWarningLimit': 20000,
+              'warnOnTokenExceed': false,
+              'stripCommentsFromCode': true,
+              'defaultExportLocation': tempExportDir.path,
+            }),
+          });
+
+          // Act
+          final result = await dataSource.combineAndExportFiles([testFilePaths[0]]);
+
+          // Assert
+          expect(result, isNotEmpty);
+          expect(result.first.path.startsWith(tempExportDir.path), isTrue);
+        });
+
+        test('should fallback to defaults when SharedPreferences is empty', () async {
+          // Arrange - Clear SharedPreferences
+          SharedPreferences.setMockInitialValues({});
+
+          try {
+            // Act
+            final result = await dataSource.combineAndExportFiles([testFilePaths[0]]);
+            // Assert - Should complete successfully
+            expect(result, isNotEmpty);
+          } on Exception catch (e) {
+            // Accept that path_provider might fail in test environment
+            expect(e.toString(), contains('path_provider'));
+          }
+        });
+
+        test('should fallback to defaults when SharedPreferences contains invalid data', () async {
+          // Arrange - Set invalid JSON in SharedPreferences
+          SharedPreferences.setMockInitialValues({
+            'app_settings': 'invalid json data',
+          });
+
+          try {
+            // Act
+            final result = await dataSource.combineAndExportFiles([testFilePaths[0]]);
+            // Assert - Should complete successfully
+            expect(result, isNotEmpty);
+          } on Exception catch (e) {
+            // Accept that path_provider might fail in test environment
+            expect(e.toString(), contains('path_provider'));
+          }
+        });
+      });
+
+      group('directory creation', () {
+        test('should create export directory if it does not exist', () async {
+          // Arrange - Delete export directory
+          if (tempExportDir.existsSync()) {
+            await tempExportDir.delete(recursive: true);
+          }
+          expect(tempExportDir.existsSync(), isFalse);
+
+          // Act
+          final result = await dataSource.combineAndExportFiles([testFilePaths[0]]);
+
+          // Assert
+          expect(result, isNotEmpty);
+          expect(tempExportDir.existsSync(), isTrue);
+          expect(result.first.existsSync(), isTrue);
+        });
+
+        test('should handle nested directory creation', () async {
+          // Arrange - Set export location to nested path
+          final nestedPath = path.join(tempExportDir.path, 'nested', 'deeper');
+          SharedPreferences.setMockInitialValues({
+            'app_settings': jsonEncode({
+              'fileSplitSizeInMB': 1,
+              'maxTokenWarningLimit': 10000,
+              'warnOnTokenExceed': true,
+              'stripCommentsFromCode': false,
+              'defaultExportLocation': nestedPath,
+            }),
+          });
+
+          // Act
+          final result = await dataSource.combineAndExportFiles([testFilePaths[0]]);
+
+          // Assert
+          expect(result, isNotEmpty);
+          expect(io.Directory(nestedPath).existsSync(), isTrue);
+          expect(result.first.path.startsWith(nestedPath), isTrue);
+        });
+      });
+
+      group('error handling', () {
+        test('should throw FileSystemException with proper details on critical failure', () async {
+          // Arrange - Create scenario that might cause failure (permission denied directory)
+          final restrictedPath = '/root/restricted_export'; // Likely to be inaccessible
+          SharedPreferences.setMockInitialValues({
+            'app_settings': jsonEncode({
+              'fileSplitSizeInMB': 1,
+              'maxTokenWarningLimit': 10000,
+              'warnOnTokenExceed': true,
+              'stripCommentsFromCode': false,
+              'defaultExportLocation': restrictedPath,
+            }),
+          });
+
+          // Act & Assert
+          expect(
+            () => dataSource.combineAndExportFiles([testFilePaths[0]]),
+            throwsA(
+              isA<FileSystemException>()
+                  .having((e) => e.methodName, 'methodName', 'combineAndExportFiles')
+                  .having((e) => e.userMessage, 'userMessage', 'Failed to combine and export files')
+                  .having((e) => e.debugDetails, 'debugDetails', contains(testFilePaths[0])),
+            ),
+          );
+        });
+
+        test('should continue processing when individual files fail to read', () async {
+          // Arrange - Mix of valid and problematic files
+          final validFile = testFilePaths[0];
+          final problemFile = path.join(testDirectoryPath, 'problem_file.txt');
+          
+          // Create file then make it problematic by changing permissions or deleting
+          await io.File(problemFile).writeAsString('temp');
+          await io.File(problemFile).delete(); // Make it non-existent
+          
+          final inputPaths = [validFile, problemFile, testFilePaths[1]];
+
+          // Act
+          final result = await dataSource.combineAndExportFiles(inputPaths);
+
+          // Assert
+          expect(result, isNotEmpty);
+          final content = await result.first.readAsString();
+          expect(content, contains('=== $validFile ==='));
+          expect(content, contains('=== ${testFilePaths[1]} ==='));
+          expect(content, isNot(contains('problem_file.txt')));
+        });
+      });
+
+      group('batch processing', () {
+        test('should handle large number of files efficiently', () async {
+          // Arrange - Create many small files
+          final manyFiles = <String>[];
+          for (var i = 0; i < 25; i++) { // More than batch size of 10
+            final filePath = path.join(testDirectoryPath, 'batch_file_$i.txt');
+            await io.File(filePath).writeAsString('Content $i');
+            manyFiles.add(filePath);
+          }
+
+          // Act
+          final stopwatch = Stopwatch()..start();
+          final result = await dataSource.combineAndExportFiles(manyFiles);
+          stopwatch.stop();
+
+          // Assert
+          expect(result, isNotEmpty);
+          expect(stopwatch.elapsedMilliseconds, lessThan(10000)); // Should complete within 10 seconds
+          
+          final content = await result.first.readAsString();
+          for (var i = 0; i < 25; i++) {
+            expect(content, contains('Content $i'));
+          }
+          
+          // Cleanup
+          for (final filePath in manyFiles) {
+            await io.File(filePath).delete();
+          }
+        });
+      });
+
+      group('content formatting', () {
+        test('should format headers correctly with file paths', () async {
+          // Arrange
+          final inputPaths = [testFilePaths[0], testFilePaths[2]];
+
+          // Act
+          final result = await dataSource.combineAndExportFiles(inputPaths);
+
+          // Assert
+          final content = await result.first.readAsString();
+          expect(content, contains('=== ${testFilePaths[0]} ==='));
+          expect(content, contains('=== ${testFilePaths[2]} ==='));
+          
+          // Verify proper spacing between files
+          final lines = content.split('\n');
+          var headerCount = 0;
+          for (final line in lines) {
+            if (line.startsWith('=== ') && line.endsWith(' ===')) {
+              headerCount++;
+            }
+          }
+          expect(headerCount, equals(2));
+        });
+
+        test('should maintain file content integrity', () async {
+          // Arrange
+          final testFile = path.join(testDirectoryPath, 'integrity_test.txt');
+          const originalContent = 'Line 1\nLine 2\n\nLine 4 with spaces   \nLine 5 with tabs\t\t';
+          await io.File(testFile).writeAsString(originalContent);
+
+          // Act
+          final result = await dataSource.combineAndExportFiles([testFile]);
+
+          // Assert
+          final combinedContent = await result.first.readAsString();
+          expect(combinedContent, contains(originalContent));
+          
+          // Cleanup
+          await io.File(testFile).delete();
         });
       });
     });

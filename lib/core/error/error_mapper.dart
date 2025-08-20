@@ -63,6 +63,15 @@ class ErrorMapper {
       );
     }
 
+    if (error is FileSystemException) {
+      return FileSystemFailure(
+        message: error.userMessage,
+        isRecoverable: error.isRecoverable,
+        title: error.title,
+        priority: error.priority,
+      );
+    }
+
     // Unknown/Unexpected Errors
     return const UnknownFailure(
       message: 'Unknown Error',

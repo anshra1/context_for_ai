@@ -70,6 +70,16 @@ class StorageFailure extends Failure {
   });
 }
 
+/// Failure for file system-related errors
+class FileSystemFailure extends Failure {
+  const FileSystemFailure({
+    required super.message,
+    required super.title,
+    super.priority = ErrorPriority.medium,
+    super.isRecoverable = true,
+  });
+}
+
 /// Failure for unknown/unexpected errors
 class UnknownFailure extends Failure {
   const UnknownFailure({

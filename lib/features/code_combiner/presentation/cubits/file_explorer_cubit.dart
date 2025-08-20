@@ -15,8 +15,8 @@ class FileExplorerCubit extends Cubit<FileTreeState> {
   FileExplorerCubit({
     required this.fileSystemDataSource,
     required this.localStorageDataSource,
-    required this.clipboardDataSource,
-    required this.fileExportDataSource,
+    
+    
   }) : super(
          FileTreeState(
            allNodes: {},
@@ -30,7 +30,7 @@ class FileExplorerCubit extends Cubit<FileTreeState> {
              maxFileSizeInMB: 10,
              includeHiddenFiles: false,
              allowedExtensions: {},
-             enablePositiveFiltering: false,
+            // enablePositiveFiltering: false,
            ),
            tokenCount: 0,
          ),
@@ -38,11 +38,11 @@ class FileExplorerCubit extends Cubit<FileTreeState> {
 
   final FileSystemDataSource fileSystemDataSource;
   final LocalStorageDataSource localStorageDataSource;
-  final ClipboardDataSource clipboardDataSource;
-  final FileExportDataSource fileExportDataSource;
+  
+  
 
-  late Map<String, FileNode> _allNodes;
-  late FilterSettings _currentFilters;
+  late Map<String, FileNode> selectedNodes;
+  late FilterSettings _currentPositiveFilters;
 
   void toggleNodeSelection(String nodeId) {
     // TODO: Implement node selection toggle
