@@ -1,5 +1,5 @@
-import 'package:context_for_ai/features/code_combiner/data/models/node_type.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/selection_state.dart';
+import 'package:context_for_ai/features/code_combiner/data/enum/node_type.dart';
+import 'package:context_for_ai/features/code_combiner/data/enum/selection_state.dart';
 
 class FileNode {
   FileNode({
@@ -12,6 +12,8 @@ class FileNode {
     required this.childIds,
     this.parentId,
   });
+
+
   
   final String id;
   final String name;

@@ -1,1 +1,1 @@
-export '../../data/models/node_type.dart';
+export '../../data/enum/node_type.dart';

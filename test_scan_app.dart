@@ -1,6 +1,6 @@
 import 'package:context_for_ai/features/code_combiner/data/datasources/file_system_data_source.dart';
 import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/node_type.dart';
+import 'package:context_for_ai/features/code_combiner/data/enum/node_type.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 

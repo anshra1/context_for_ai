@@ -1,7 +1,17 @@
-import 'file_node.dart';
-import 'filter_settings.dart';
+import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
+import 'package:context_for_ai/features/code_combiner/data/models/filter_settings.dart';
 
 class FileTreeState {
+  FileTreeState({
+    required this.allNodes,
+    required this.selectedFileIds,
+    required this.tokenCount,
+    required this.isLoading,
+    required this.filterSettings,
+    this.rootId,
+    this.errorMessage,
+  });
+  
   final Map<String, FileNode> allNodes;
   final String? rootId;
   final Set<String> selectedFileIds;
@@ -9,17 +19,7 @@ class FileTreeState {
   final bool isLoading;
   final FilterSettings filterSettings;
   final String? errorMessage;
-  
-  FileTreeState({
-    required this.allNodes,
-    this.rootId,
-    required this.selectedFileIds,
-    required this.tokenCount,
-    required this.isLoading,
-    required this.filterSettings,
-    this.errorMessage,
-  });
-  
+
   FileTreeState copyWith({
     Map<String, FileNode>? allNodes,
     String? rootId,

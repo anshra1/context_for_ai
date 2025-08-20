@@ -8,7 +8,7 @@ import 'package:context_for_ai/features/code_combiner/data/models/export_result.
 import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
 import 'package:context_for_ai/features/code_combiner/data/models/file_tree_state.dart';
 import 'package:context_for_ai/features/code_combiner/data/models/filter_settings.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/selection_state.dart';
+import 'package:context_for_ai/features/code_combiner/data/enum/selection_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class FileExplorerCubit extends Cubit<FileTreeState> {

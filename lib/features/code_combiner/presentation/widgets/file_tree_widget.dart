@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubits/file_explorer_cubit.dart';
 import '../../data/models/file_tree_state.dart';
 import '../../data/models/file_node.dart';
-import '../../data/models/node_type.dart';
+import '../../data/enum/node_type.dart';
 import 'file_node_widget.dart';
 
 class FileTreeWidget extends StatelessWidget {

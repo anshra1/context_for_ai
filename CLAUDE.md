@@ -1,0 +1,1 @@
+- always throgh exception form path error

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/models/file_node.dart';
-import '../../data/models/node_type.dart';
-import '../../data/models/selection_state.dart';
+import '../../data/enum/node_type.dart';
+import '../../data/enum/selection_state.dart';
 
 class FileNodeWidget extends StatelessWidget {
   final FileNode node;

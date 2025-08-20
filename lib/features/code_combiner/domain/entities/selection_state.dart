@@ -1,1 +1,1 @@
-export '../../data/models/selection_state.dart';
+export '../../data/enum/selection_state.dart';

@@ -3,8 +3,8 @@ import 'dart:io' as io;
 import 'package:context_for_ai/core/error/exception.dart';
 import 'package:context_for_ai/features/code_combiner/data/datasources/file_system_data_source.dart';
 import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/node_type.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/selection_state.dart';
+import 'package:context_for_ai/features/code_combiner/data/enum/node_type.dart';
+import 'package:context_for_ai/features/code_combiner/data/enum/selection_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as path;
 

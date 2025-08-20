@@ -4,3 +4,4 @@ build/
 *.freezed.dart
 theme_ui_widgets/
 toastification/
+mcp-flutter-knowledge/
