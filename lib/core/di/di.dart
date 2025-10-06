@@ -1,95 +1,53 @@
-// // ignore_for_file: unused_element
+import 'package:context_for_ai/core/theme/cubit/theme_cubit.dart';
+import 'package:context_for_ai/features/code_combiner/data/datasources/file_system_data_source.dart';
+import 'package:context_for_ai/features/code_combiner/data/datasources/local_storage_data_source.dart';
+import 'package:context_for_ai/features/code_combiner/data/repositories/code_combiner_repository_impl.dart';
+import 'package:context_for_ai/features/code_combiner/domain/repositories/code_combiner_repository.dart';
+import 'package:context_for_ai/features/code_combiner/domain/usecases/code_combiner_usecase.dart';
+import 'package:context_for_ai/features/code_combiner/presentation/cubits/file_explorer_cubit.dart';
+import 'package:context_for_ai/features/code_combiner/presentation/cubits/workspace_cubit.dart';
+import 'package:get_it/get_it.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-// import 'package:context_for_ai/core/services/hive_setup_service.dart';
-// import 'package:context_for_ai/core/theme/cubit/theme_cubit.dart';
-// import 'package:context_for_ai/features/setting/data/datasource/setting_datasource.dart';
-// import 'package:get_it/get_it.dart';
+final GetIt sl = GetIt.instance;
 
-// // File Tree Feature Imports
-// import 'package:context_for_ai/features/file_tree/data/datasources/file_tree_data_source.dart';
-// import 'package:context_for_ai/features/file_tree/data/repositories/file_tree_repository_impl.dart';
-// import 'package:context_for_ai/features/file_tree/domain/repositories/file_tree_repository.dart';
-// import 'package:context_for_ai/features/file_tree/domain/services/tree_filter_service.dart';
-// import 'package:context_for_ai/features/file_tree/domain/services/tree_node_service.dart';
-// import 'package:context_for_ai/features/file_tree/domain/usecases/file_tree_usecases.dart';
-// import 'package:context_for_ai/features/file_tree/presentation/cubit/file_tree_cubit.dart';
+Future<void> init() async {
+  await _core();
+  await _codeCombiner();
+}
 
-// final GetIt sl = GetIt.instance;
+Future<void> _core() async {
+  // Theme cubit
+  sl
+    ..registerLazySingleton<ThemeCubit>(ThemeCubit.new)
+    // SharedPreferences as async singleton
+    ..registerSingletonAsync<SharedPreferences>(SharedPreferences.getInstance);
+  await sl.isReady<SharedPreferences>();
+}
 
-// Future<void> init() async {
-//   await _core();
-//   await _hive();
-//   await _fileTree();
-// }
-
-// Future<void> _core() async {
-//   sl.registerLazySingleton<ThemeCubit>(ThemeCubit.new);
-// }
-
-// Future<void> _hive() async {
-//   sl.registerLazySingleton(HiveSetupService.new);
-
-//   // Initialize Hive
-//   await sl<HiveSetupService>().init();
-// }
-
-// /// File Tree Feature Dependencies
-// Future<void> _fileTree() async {
-//   // Domain Services
-//   sl.registerLazySingleton<TreeFilterService>(() => const TreeFilterService());
-//   sl.registerLazySingleton<TreeNodeService>(() => const TreeNodeService());
-
-//   // Data Sources
-//   sl.registerLazySingleton<FileTreeDataSource>(
-//     () => FileTreeDataSourceImpl(
-//       settingsDataSource: sl<SettingsDataSource>(),
-//       filterService: sl<TreeFilterService>(),
-//     ),
-//   );
-
-//   // Repositories
-//   sl.registerLazySingleton<FileTreeRepository>(
-//     () => FileTreeRepositoryImpl(
-//       dataSource: sl<FileTreeDataSource>(),
-//     ),
-//   );
-
-//   // Use Cases
-//   sl.registerLazySingleton(
-//     () => LoadFolderContents(repository: sl<FileTreeRepository>()),
-//   );
-//   sl.registerLazySingleton(
-//     () => LoadFilteredFolderContents(repository: sl<FileTreeRepository>()),
-//   );
-//   sl.registerLazySingleton(
-//     () => ApplyTreeFilter(repository: sl<FileTreeRepository>()),
-//   );
-//   sl.registerLazySingleton(
-//     () => CalculateTokenCount(repository: sl<FileTreeRepository>()),
-//   );
-//   sl.registerLazySingleton(
-//     () => ValidatePath(repository: sl<FileTreeRepository>()),
-//   );
-//   sl.registerLazySingleton(
-//     () => GetGlobalFilter(repository: sl<FileTreeRepository>()),
-//   );
-//   sl.registerLazySingleton(
-//     () => CheckFileReadability(repository: sl<FileTreeRepository>()),
-//   );
-//   sl.registerLazySingleton(
-//     () => CalculateSelectionState(),
-//   );
-
-//   // Cubits (Factory - new instance each time)
-//   sl.registerFactory(
-//     () => FileTreeCubit(
-//       loadFolderContents: sl<LoadFolderContents>(),
-//       applyTreeFilter: sl<ApplyTreeFilter>(),
-//       calculateTokenCount: sl<CalculateTokenCount>(),
-//       validatePath: sl<ValidatePath>(),
-//       getGlobalFilter: sl<GetGlobalFilter>(),
-//       checkFileReadability: sl<CheckFileReadability>(),
-//       calculateSelectionState: sl<CalculateSelectionState>(),
-//     ),
-//   );
-// }
+Future<void> _codeCombiner() async {
+  // Data sources
+  sl
+    ..registerLazySingleton<FileSystemDataSource>(FileSystemDataSourceImpl.new)
+    ..registerLazySingleton<LocalStorageDataSource>(
+      () => LocalStorageDataSourceImpl(sl<SharedPreferences>()),
+    )
+    // Repository
+    ..registerLazySingleton<CodeCombinerRepository>(
+      () => CodeCombinerRepositoryImpl(
+        fileSystemDataSource: sl<FileSystemDataSource>(),
+        localStorageDataSource: sl<LocalStorageDataSource>(),
+      ),
+    )
+    // Use case
+    ..registerLazySingleton<CodeCombinerUseCase>(
+      () => CodeCombinerUseCase(repository: sl<CodeCombinerRepository>()),
+    )
+    // Cubits
+    ..registerFactory<WorkspaceCubit>(
+      () => WorkspaceCubit(codeCombinerUseCase: sl<CodeCombinerUseCase>()),
+    )
+    ..registerFactory<FileExplorerCubit>(
+      () => FileExplorerCubit(useCase: sl<CodeCombinerUseCase>()),
+    );
+}

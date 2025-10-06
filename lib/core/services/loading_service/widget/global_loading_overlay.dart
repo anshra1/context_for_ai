@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:theme_ui_widgets/theme_ui_widgets.dart';
+import 'package:material_design_system/material_design_system.dart';
 
 class AnimatedFileUploadDialog extends StatefulWidget {
   const AnimatedFileUploadDialog({
@@ -44,7 +44,9 @@ class _AnimatedFileUploadDialogState extends State<AnimatedFileUploadDialog>
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = AppTheme.of(context);
+    final tokens = MdTheme.of(context);
+    final spacing = SpacingTokens();
+    final shape = ShapeTokens();
     final size = MediaQuery.of(context).size;
     final barWidth = size.width * 0.7;
     const barHeight = 12.0;
@@ -53,10 +55,10 @@ class _AnimatedFileUploadDialogState extends State<AnimatedFileUploadDialog>
       child: Container(
         width: barWidth,
         height: size.height * 0.4,
-        padding: EdgeInsets.all(appTheme.spacing.xl),
+        padding: EdgeInsets.all(spacing.extraLarge(context)),
         decoration: BoxDecoration(
-          color: appTheme.surfaceColorScheme.layer02,
-          borderRadius: BorderRadius.circular(appTheme.borderRadius.l),
+          color: tokens.sys.surfaceContainer,
+          borderRadius: shape.borderRadiusLarge,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withAlpha(10),
@@ -74,26 +76,26 @@ class _AnimatedFileUploadDialogState extends State<AnimatedFileUploadDialog>
               child: Icon(
                 Icons.file_upload_rounded,
                 size: 48,
-                color: appTheme.iconColorScheme.primary,
+                color: tokens.sys.primary,
               ),
             ),
-            SizedBox(height: appTheme.spacing.l),
+            SizedBox(height: spacing.large(context)),
             Text(
               'Uploading File',
-              style: appTheme.textStyle.headlineSmall.standard(
-                color: appTheme.textColorScheme.primary,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: tokens.sys.onSurface,
               ),
             ),
-            SizedBox(height: appTheme.spacing.s),
+            SizedBox(height: spacing.small(context)),
             Text(
               widget.fileName,
-              style: appTheme.textStyle.bodyLarge.standard(
-                color: appTheme.textColorScheme.secondary,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: tokens.sys.onSurfaceVariant,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            SizedBox(height: appTheme.spacing.xl),
+            SizedBox(height: spacing.extraLarge(context)),
 
             // Animated progress bar container
             Stack(
@@ -103,7 +105,7 @@ class _AnimatedFileUploadDialogState extends State<AnimatedFileUploadDialog>
                   width: barWidth,
                   height: barHeight,
                   decoration: BoxDecoration(
-                    color: appTheme.fillColorScheme.quaternary,
+                    color: tokens.sys.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(barHeight / 2),
                   ),
                 ),
@@ -115,7 +117,7 @@ class _AnimatedFileUploadDialogState extends State<AnimatedFileUploadDialog>
                   width: barWidth * widget.progress,
                   height: barHeight,
                   decoration: BoxDecoration(
-                    color: appTheme.fillColorScheme.themeThick,
+                    color: tokens.sys.primary,
                     borderRadius: BorderRadius.circular(barHeight / 2),
                   ),
                   child: ClipRRect(
@@ -131,11 +133,11 @@ class _AnimatedFileUploadDialogState extends State<AnimatedFileUploadDialog>
                 ),
               ],
             ),
-            SizedBox(height: appTheme.spacing.m),
+            SizedBox(height: spacing.medium(context)),
             Text(
               '${(widget.progress * 100).toStringAsFixed(0)}%',
-              style: appTheme.textStyle.bodyMedium.standard(
-                color: appTheme.textColorScheme.primary,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: tokens.sys.onSurface,
               ),
             ),
           ],

@@ -1,5 +1,6 @@
 import 'package:context_for_ai/core/error/failure.dart';
 import 'package:context_for_ai/features/code_combiner/data/models/recent_workspace.dart';
+import 'package:context_for_ai/features/code_combiner/domain/repositories/code_combiner_repository.dart';
 import 'package:equatable/equatable.dart';
 
 sealed class WorkspaceState extends Equatable {
@@ -45,4 +46,13 @@ class WorkspaceLoaded extends WorkspaceState {
 
   @override
   List<Object> get props => [workspaces];
+}
+
+class WorkspaceOpened extends WorkspaceState {
+  const WorkspaceOpened(this.workspaceData);
+
+  final WorkspaceData workspaceData;
+
+  @override
+  List<Object> get props => [workspaceData];
 }

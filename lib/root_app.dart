@@ -2,25 +2,41 @@ import 'package:context_for_ai/core/di/di.dart';
 import 'package:context_for_ai/core/routes/routes.dart';
 import 'package:context_for_ai/core/theme/cubit/theme_cubit.dart';
 import 'package:context_for_ai/core/theme/cubit/theme_state.dart';
-import 'package:context_for_ai/core/theme/flutter_theme_data/flutter_theme_data.dart';
+import 'package:context_for_ai/features/code_combiner/presentation/cubits/file_explorer_cubit.dart';
+import 'package:context_for_ai/features/code_combiner/presentation/cubits/workspace_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:theme_ui_widgets/theme_ui_widgets.dart'; // Import for BlocProvider and BlocBuilder
-// Replace with the actual path to your ThemeState
+import 'package:material_design_system/material_design_system.dart';
+
 
 class RootApp extends StatelessWidget {
   const RootApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<ThemeCubit>(
-      create: (context) {
-        final cubit = sl<ThemeCubit>()..init();
-  
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<ThemeCubit>(
+          create: (context) {
+            final cubit = sl<ThemeCubit>()..init();
+            return cubit;
+          },
+        ),
+        // TODO: Add other providers here as needed
+        BlocProvider<WorkspaceCubit>(
+          create: (context) {
+            final cubit = sl<WorkspaceCubit>();
+            return cubit;
+          },
+        ),
 
-        return cubit;
-      },
-
+        BlocProvider<FileExplorerCubit>(
+          create: (context) {
+            final cubit = sl<FileExplorerCubit>();
+            return cubit;
+          },
+        ),
+      ],
       child: const AppContainer(),
     );
   }
@@ -42,18 +58,36 @@ class AppContainer extends StatelessWidget {
         };
         final isDark = effectiveBrightness == Brightness.dark;
 
-        return AnimatedAppTheme(
-          data: isDark ? AppDefaultTheme().dark() : AppDefaultTheme().light(),
-          child: MaterialApp.router(
-            themeMode: state.themeMode,
+        // Build SystemTokens from Facebook brand-like seeds
+        final seeds = _facebookReferenceTokens();
+        final tokens = isDark
+            ? const StandardLightThemeGenerator().generate(seeds: seeds)
+            : const StandardLightThemeGenerator().generate(seeds: seeds);
 
+        // Convert to Flutter ColorScheme and ThemeData
+        final colorScheme = SystemTokenToColorSchemeConverter.convert(
+          tokens,
+          effectiveBrightness,
+        );
+        
+        final theme = ThemeData(
+          useMaterial3: true,
+          brightness: effectiveBrightness,
+          colorScheme: colorScheme,
+          fontFamily: state.fontFamily.isEmpty ? null : state.fontFamily,
+          scaffoldBackgroundColor: tokens.background,
+          canvasColor: tokens.surface,
+        );
+
+        return MdTheme(
+          data: MdThemeToken(sys: tokens),
+          child: MaterialApp.router(
+            themeMode:  ThemeMode.light,
+             // state.themeMode,
             debugShowCheckedModeBanner: false,
             title: 'Context for AI',
-            theme: AppFlutterThemeData.toFlutterTheme(
-              tokens: isDark ? AppDefaultTheme().dark() : AppDefaultTheme().light(),
-              brightness: isDark ? Brightness.dark : Brightness.light,
-              fontFamily: state.fontFamily,
-            ),
+            theme: theme,
+            darkTheme: theme.copyWith(brightness: Brightness.dark),
             routerConfig: AppRouter.router,
             builder: (context, child) {
               return MediaQuery(
@@ -69,6 +103,23 @@ class AppContainer extends StatelessWidget {
       },
     );
   }
+}
+
+/// Facebook-like brand seeds for theme generation
+ReferenceTokens _facebookReferenceTokens() {
+  // TODO: Source of input list not provided. Should I mock or will you supply it?
+  // NOTE: Using commonly recognized Facebook palette approximations; please confirm exact brand values.
+  return const ReferenceTokens(
+    primary: Color(0xFF1877F2), // Facebook Blue
+    secondary: Color(0xFF65676B), // Neutral Gray
+    tertiary: Color(0xFF385898), // Darker Blue accent
+    neutral: Color(0xFFF0F2F5), // Background light
+    neutralVariant: Color(0xFFE4E6EB), // Surface variant
+    error: Color(0xFFB00020),
+    success: Color(0xFF42B72A),
+    warning: Color(0xFFF7B928),
+    info: Color(0xFF1877F2),
+  );
 }
 
 class ErrorBoundary extends StatelessWidget {

@@ -20,6 +20,9 @@ Future<void> main() async {
       ),
     );
 
+    await init();
+    
+
     runApp(const ToastificationWrapper(child: RootApp()));
   } catch (error, stackTrace) {
     FlutterError.reportError(

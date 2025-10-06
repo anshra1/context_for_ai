@@ -1,310 +1,390 @@
-import 'package:context_for_ai/features/code_combiner/data/datasources/clipboard_data_source.dart';
-import 'package:context_for_ai/features/code_combiner/data/datasources/file_export_data_source.dart';
-import 'package:context_for_ai/features/code_combiner/data/datasources/file_system_data_source.dart';
-import 'package:context_for_ai/features/code_combiner/data/datasources/local_storage_data_source.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/app_settings.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/export_preview.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/export_result.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/file_tree_state.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/filter_settings.dart';
+import 'package:context_for_ai/features/code_combiner/data/enum/node_type.dart';
 import 'package:context_for_ai/features/code_combiner/data/enum/selection_state.dart';
+import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
+import 'package:context_for_ai/features/code_combiner/data/models/filter_settings.dart';
+import 'package:context_for_ai/features/code_combiner/domain/usecases/code_combiner_usecase.dart';
+import 'package:context_for_ai/features/code_combiner/presentation/cubits/states/file_explorer_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class FileExplorerCubit extends Cubit<FileTreeState> {
-  FileExplorerCubit({
-    required this.fileSystemDataSource,
-    required this.localStorageDataSource,
-    
-    
-  }) : super(
-         FileTreeState(
-           allNodes: {},
-           selectedFileIds: {},
-           isLoading: false,
-           filterSettings: const FilterSettings(
-             blockedExtensions: {},
-             blockedFilePaths: {},
-             blockedFileNames: {},
-             blockedFolderNames: {},
-             maxFileSizeInMB: 10,
-             includeHiddenFiles: false,
-             allowedExtensions: {},
-            // enablePositiveFiltering: false,
-           ),
-           tokenCount: 0,
-         ),
-       );
+/// FileExplorerCubit following Clean Architecture with proper sealed states
+/// Manages file tree selection, filtering, and expansion with optimal memory usage
+class FileExplorerCubit extends Cubit<FileExplorerState> {
+  FileExplorerCubit({required this.useCase}) : super(const FileExplorerInitial());
 
-  final FileSystemDataSource fileSystemDataSource;
-  final LocalStorageDataSource localStorageDataSource;
-  
-  
+  final CodeCombinerUseCase useCase;
 
-  late Map<String, FileNode> selectedNodes;
-  late FilterSettings _currentPositiveFilters;
+  // ==================== LOCAL SESSION VARIABLES ====================
+  // Memory efficient - only stored locally, not in state
+  Map<String, FileNode> _allNodes = {}; // Fixed after scan
+  final Set<String> _selectedFileIds = {}; // Selection tracking
+  final Map<String, bool> _expansionStates = {}; // Folder expand/collapse
+  FilterSettings _currentFilterSettings = FilterSettings.defaults();
 
+  // ==================== INITIALIZATION ====================
+
+  /// Initialize workspace - scan directory and load settings
+  Future<void> initialize(String workspacePath) async {
+    emit(const FileExplorerLoading());
+
+    final result = await useCase.openDirectoryTree(workspacePath);
+    result.fold(
+      (failure) => emit(FileExplorerError(failure.message)),
+      (workspaceData) {
+        // Store complete tree locally (one-time scan per session)
+        _allNodes = workspaceData.fileTree;
+        _currentFilterSettings = workspaceData.filterSettings;
+
+        // Compute initial filtered nodes and emit
+        final filteredNodes = _computeFilteredNodes();
+        emit(FileExplorerLoaded(filteredNodes));
+      },
+    );
+  }
+
+  // ==================== SELECTION MANAGEMENT ====================
+
+  /// Toggle node selection with real-time ancestor updates
   void toggleNodeSelection(String nodeId) {
-    // TODO: Implement node selection toggle
-    throw UnimplementedError();
+    final node = _allNodes[nodeId];
+    if (node == null) return;
+
+    // Create working copy for atomic updates
+    final updatedNodes = Map<String, FileNode>.from(_allNodes);
+
+    if (node.type == NodeType.file) {
+      _toggleFileSelection(nodeId, node, updatedNodes);
+    } else {
+      _toggleFolderSelection(nodeId, node, updatedNodes);
+    }
+
+    // Real-time ancestor state updates
+    _updateAncestorStates(nodeId, updatedNodes);
+
+    // Store updated nodes locally
+    _allNodes = updatedNodes;
+
+    // Emit new filtered tree
+    final filteredNodes = _computeFilteredNodes();
+    emit(FileExplorerLoaded(filteredNodes));
   }
 
-  void _handleFileSelection(String fileId) {
-    // TODO: Implement file selection handling
-    throw UnimplementedError();
+  void _toggleFileSelection(String fileId, FileNode file, Map<String, FileNode> nodes) {
+    final newState = file.selectionState == SelectionState.checked
+        ? SelectionState.unchecked
+        : SelectionState.checked;
+
+    nodes[fileId] = file.copyWith(selectionState: newState);
+
+    // Update selection tracking
+    if (newState == SelectionState.checked) {
+      _selectedFileIds.add(fileId);
+    } else {
+      _selectedFileIds.remove(fileId);
+    }
   }
 
-  void _handleFolderSelection(String folderId) {
-    // TODO: Implement folder selection handling
-    throw UnimplementedError();
-  }
-
-  SelectionState _determineNewSelectionState(FileNode node) {
-    // TODO: Implement selection state determination
-    throw UnimplementedError();
-  }
-
-  void _setFolderAndDescendants(String folderId, SelectionState state) {
-    // TODO: Implement folder and descendants state setting
-    throw UnimplementedError();
-  }
-
-  void _updateNodeState(String nodeId, SelectionState state) {
-    // TODO: Implement node state update
-    throw UnimplementedError();
-  }
-
-  List<String> _getAllDescendantIds(String folderId) {
-    // TODO: Implement descendant IDs retrieval
-    throw UnimplementedError();
-  }
-
-  Set<String> _updateSelectedFileIds(
-    Set<String> currentSelected,
-    String nodeId,
-    SelectionState state,
+  void _toggleFolderSelection(
+    String folderId,
+    FileNode folder,
+    Map<String, FileNode> nodes,
   ) {
-    // TODO: Implement selected file IDs update
-    throw UnimplementedError();
+    final newState = folder.selectionState == SelectionState.checked
+        ? SelectionState.unchecked
+        : SelectionState.checked;
+
+    _setFolderAndDescendants(folderId, newState, nodes);
   }
 
-  void _updateAncestorStates(String nodeId) {
-    // TODO: Implement ancestor states update
-    throw UnimplementedError();
+  void _setFolderAndDescendants(
+    String folderId,
+    SelectionState state,
+    Map<String, FileNode> nodes,
+  ) {
+    final folder = nodes[folderId];
+    if (folder == null) return;
+
+    nodes[folderId] = folder.copyWith(selectionState: state);
+
+    // Recursively update all descendants
+    for (final childId in folder.childIds) {
+      final child = nodes[childId];
+      if (child == null) continue;
+
+      nodes[childId] = child.copyWith(selectionState: state);
+
+      // Update selection tracking for files
+      if (child.type == NodeType.file) {
+        if (state == SelectionState.checked) {
+          _selectedFileIds.add(childId);
+        } else {
+          _selectedFileIds.remove(childId);
+        }
+      } else {
+        // Recursively handle nested folders
+        _setFolderAndDescendants(childId, state, nodes);
+      }
+    }
   }
 
-  List<String> _getAncestorIds(String nodeId) {
-    // TODO: Implement ancestor IDs retrieval
-    throw UnimplementedError();
+  void _updateAncestorStates(String nodeId, Map<String, FileNode> nodes) {
+    final node = nodes[nodeId];
+    if (node?.parentId == null) return;
+
+    final parentId = node!.parentId!;
+    final parent = nodes[parentId];
+    if (parent?.type != NodeType.folder) return;
+
+    final newParentState = _calculateFolderState(parentId, nodes);
+    if (parent!.selectionState != newParentState) {
+      nodes[parentId] = parent.copyWith(selectionState: newParentState);
+      _updateAncestorStates(parentId, nodes); // Recursive upward propagation
+    }
   }
 
-  void _propagateStateUpward(String nodeId) {
-    // TODO: Implement state propagation upward
-    throw UnimplementedError();
+  SelectionState _calculateFolderState(String folderId, Map<String, FileNode> nodes) {
+    final folder = nodes[folderId];
+    if (folder == null || folder.childIds.isEmpty) return SelectionState.unchecked;
+
+    var checkedCount = 0;
+    var hasIntermediate = false;
+
+    for (final childId in folder.childIds) {
+      final child = nodes[childId];
+      if (child == null) continue;
+
+      if (child.selectionState == SelectionState.checked) {
+        checkedCount++;
+      } else if (child.selectionState == SelectionState.intermediate) {
+        hasIntermediate = true;
+      }
+    }
+
+    if (hasIntermediate || (checkedCount > 0 && checkedCount < folder.childIds.length)) {
+      return SelectionState.intermediate;
+    }
+
+    return checkedCount == folder.childIds.length
+        ? SelectionState.checked
+        : SelectionState.unchecked;
   }
 
-  SelectionState _calculateFolderState(String folderId) {
-    // TODO: Implement folder state calculation
-    throw UnimplementedError();
-  }
-
-  List<FileNode> _getDirectChildren(String folderId) {
-    // TODO: Implement direct children retrieval
-    throw UnimplementedError();
-  }
-
-  int _countCheckedChildren(List<FileNode> children) {
-    // TODO: Implement checked children count
-    throw UnimplementedError();
-  }
-
-  bool _hasIntermediateChildren(List<FileNode> children) {
-    // TODO: Implement intermediate children check
-    throw UnimplementedError();
-  }
-
-  void toggleFolderExpansion(String folderId) {
-    // TODO: Implement folder expansion toggle
-    throw UnimplementedError();
-  }
-
-  void _updateExpansionState(String folderId, bool isExpanded) {
-    // TODO: Implement expansion state update
-    throw UnimplementedError();
-  }
-
-  void applyPositiveFilters(Set<String> allowedExtensions) {
-    // TODO: Implement positive filters application
-    throw UnimplementedError();
-  }
-
-  FilterSettings _updatePositiveFilters(Set<String> extensions) {
-    // TODO: Implement positive filters update
-    throw UnimplementedError();
-  }
-
-  void _triggerTreeRefiltering() {
-    // TODO: Implement tree refiltering trigger
-    throw UnimplementedError();
-  }
-
+  /// Clear all selections
   void clearAllSelections() {
-    // TODO: Implement selection clearing
-    throw UnimplementedError();
+    _selectedFileIds.clear();
+
+    // Update all nodes to unchecked
+    final clearedNodes = _allNodes.map(
+      (id, node) => MapEntry(
+        id,
+        node.copyWith(selectionState: SelectionState.unchecked),
+      ),
+    );
+
+    _allNodes = clearedNodes;
+
+    // Emit updated filtered tree
+    final filteredNodes = _computeFilteredNodes();
+    emit(FileExplorerLoaded(filteredNodes));
   }
 
-  void _resetAllNodeStates() {
-    // TODO: Implement node states reset
-    throw UnimplementedError();
+  // ==================== EXPANSION MANAGEMENT ====================
+
+  /// Toggle folder expansion state
+  void toggleFolderExpansion(String folderId) {
+    final folder = _allNodes[folderId];
+    if (folder?.type != NodeType.folder) return;
+
+    _expansionStates[folderId] = !(_expansionStates[folderId] ?? false);
+
+    // Emit state to trigger UI rebuild (expansion affects rendering)
+    final filteredNodes = _computeFilteredNodes();
+    emit(FileExplorerLoaded(filteredNodes));
   }
 
-  Map<String, FileNode> _clearAllNodeSelections(Map<String, FileNode> nodes) {
-    // TODO: Implement node selections clearing
-    throw UnimplementedError();
+  /// Get expansion state for UI
+  bool isFolderExpanded(String folderId) {
+    return _expansionStates[folderId] ?? false;
   }
 
-  Map<String, FileNode> _applyFilters(Map<String, FileNode> nodes) {
-    // TODO: Implement filters application
-    throw UnimplementedError();
+  // ==================== FILTERING SYSTEM ====================
+
+  /// Apply positive filters (session-only, UI display filtering)
+  void applyPositiveFilters(Set<String> allowedExtensions) {
+    _currentFilterSettings = _currentFilterSettings.copyWith(
+      allowedExtensions: allowedExtensions,
+    );
+
+    // Recompute filtered tree and emit
+    final filteredNodes = _computeFilteredNodes();
+    emit(FileExplorerLoaded(filteredNodes));
   }
 
-  bool _passesNegativeFilter(FileNode node) {
-    // TODO: Implement negative filter check
-    throw UnimplementedError();
+  /// Update negative filters (from datasource with selection cleanup)
+  Future<void> updateNegativeFilters() async {
+    // Keep current tree visible with loading indicator
+    final currentFilteredNodes = _computeFilteredNodes();
+    emit(FileExplorerFilterUpdating(currentFilteredNodes));
+
+    try {
+      final result = await useCase.getFilterSettings();
+
+      result.fold(
+        (failure) {
+          emit(FileExplorerError(failure.message));
+        },
+        (newFilterSettings) {
+          // Count selections before cleanup
+          final beforeCount = _selectedFileIds.length;
+
+          // Remove selected files that no longer pass negative filters
+          _selectedFileIds.removeWhere((fileId) {
+            final node = _allNodes[fileId];
+            return node != null && !_passesNegativeFilter(node, newFilterSettings);
+          });
+
+          final removedCount = beforeCount - _selectedFileIds.length;
+
+          // Update selection states in _allNodes for cleaned selections
+          final updatedNodes = Map<String, FileNode>.from(_allNodes);
+          for (final entry in updatedNodes.entries) {
+            final fileId = entry.key;
+            final node = entry.value;
+
+            if (node.selectionState == SelectionState.checked &&
+                !_selectedFileIds.contains(fileId)) {
+              updatedNodes[fileId] = node.copyWith(
+                selectionState: SelectionState.unchecked,
+              );
+            }
+          }
+
+          // Update ancestor states after selection cleanup
+          for (final fileId in updatedNodes.keys) {
+            if (!_selectedFileIds.contains(fileId)) {
+              _updateAncestorStates(fileId, updatedNodes);
+            }
+          }
+
+          // Store updated data
+          _allNodes = updatedNodes;
+          _currentFilterSettings = newFilterSettings.copyWith(
+            allowedExtensions:
+                _currentFilterSettings.allowedExtensions, // Keep positive filters
+          );
+
+          // Show success with feedback
+          final newFilteredNodes = _computeFilteredNodes();
+          emit(FileExplorerFilterUpdateSuccess(newFilteredNodes, removedCount));
+
+          // Auto-transition to loaded state
+          Future.delayed(const Duration(seconds: 2), () {
+            if (state is FileExplorerFilterUpdateSuccess) {
+              emit(FileExplorerLoaded(newFilteredNodes));
+            }
+          });
+        },
+      );
+    } catch (e) {
+      emit(FileExplorerError('Failed to update filters: $e'));
+    }
   }
 
-  bool _passesPositiveFilter(FileNode node) {
-    // TODO: Implement positive filter check
-    throw UnimplementedError();
+  /// Compute filtered nodes using simultaneous negative + positive filtering
+  Map<String, FileNode> _computeFilteredNodes() {
+    return Map.fromEntries(
+      _allNodes.entries.where((entry) {
+        final node = entry.value;
+        return _passesNegativeFilter(node, _currentFilterSettings) &&
+            _passesPositiveFilter(node, _currentFilterSettings);
+      }),
+    );
   }
 
-  Map<String, FileNode> _filterNodeMap(Map<String, FileNode> nodes) {
-    // TODO: Implement node map filtering
-    throw UnimplementedError();
+  /// Check if node passes negative filters (blocked items)
+  bool _passesNegativeFilter(FileNode node, FilterSettings settings) {
+    // Check blocked extensions
+    if (settings.blockedExtensions.any((ext) => node.path.endsWith(ext))) {
+      return false;
+    }
+
+    // Check blocked paths
+    if (settings.blockedFilePaths.any((path) => node.path.contains(path))) {
+      return false;
+    }
+
+    // Check blocked file names
+    if (settings.blockedFileNames.contains(node.name)) {
+      return false;
+    }
+
+    // Check blocked folder names
+    if (settings.blockedFolderNames.any((folder) => node.path.contains('/$folder/'))) {
+      return false;
+    }
+
+    // Check hidden files
+    if (!settings.includeHiddenFiles && node.name.startsWith('.')) {
+      return false;
+    }
+
+    return true;
   }
 
-  bool _shouldShowFile(FileNode node) {
-    // TODO: Implement file visibility check
-    throw UnimplementedError();
+  /// Check if node passes positive filters (allowed items)
+  bool _passesPositiveFilter(FileNode node, FilterSettings settings) {
+    // If no positive filters, show all
+    if (settings.allowedExtensions.isEmpty) {
+      return true;
+    }
+
+    // Always show folders (they contain files)
+    if (node.type == NodeType.folder) {
+      return true;
+    }
+
+    // Check if file extension is allowed
+    return settings.allowedExtensions.any((ext) => node.path.endsWith(ext));
   }
 
-  bool _isExtensionAllowed(String filePath) {
-    // TODO: Implement extension allowance check
-    throw UnimplementedError();
+  // ==================== EXPORT OPERATIONS ====================
+
+  /// Export selected files (delegates to datasource)
+  Future<void> exportSelectedFiles() async {
+    if (_selectedFileIds.isEmpty) return;
+
+    emit(const FileExplorerLoading());
+
+    // Convert selected IDs to file paths
+    final selectedPaths = _selectedFileIds
+        .map((id) => _allNodes[id]?.path)
+        .whereType<String>()
+        .toList();
+
+    final result = await useCase.exportFiles(selectedPaths);
+    result.fold(
+      (failure) => emit(FileExplorerError(failure.message)),
+      (exportPreview) {
+        // Export successful - return to loaded state
+        final filteredNodes = _computeFilteredNodes();
+        emit(FileExplorerLoaded(filteredNodes));
+      },
+    );
   }
 
-  bool _isPathBlocked(String filePath) {
-    // TODO: Implement path blocking check
-    throw UnimplementedError();
-  }
+  // ==================== PUBLIC GETTERS ====================
 
-  bool _isFileNameBlocked(String fileName) {
-    // TODO: Implement file name blocking check
-    throw UnimplementedError();
-  }
+  /// Get current selection count for UI display
+  int get selectedFilesCount => _selectedFileIds.length;
 
-  int _estimateTokenCount(String content) {
-    // TODO: Implement token count estimation
-    throw UnimplementedError();
-  }
-
-  int _countCharacters(String content) {
-    // TODO: Implement character counting
-    throw UnimplementedError();
-  }
-
-  double _getTokenRatio() {
-    // TODO: Implement token ratio calculation
-    throw UnimplementedError();
-  }
-
-  String _stripComments(String content, String filePath) {
-    // TODO: Implement comment stripping
-    throw UnimplementedError();
-  }
-
-  String _getFileExtension(String filePath) {
-    // TODO: Implement file extension extraction
-    throw UnimplementedError();
-  }
-
-  String _removeSingleLineComments(String content, String extension) {
-    // TODO: Implement single line comment removal
-    throw UnimplementedError();
-  }
-
-  String _removeMultiLineComments(String content, String extension) {
-    // TODO: Implement multi-line comment removal
-    throw UnimplementedError();
-  }
-
-  bool _isCommentStrippingSupported(String extension) {
-    // TODO: Implement comment stripping support check
-    throw UnimplementedError();
-  }
-
-  void _handleError(String errorMessage) {
-    // TODO: Implement error handling
-    throw UnimplementedError();
-  }
-
-  void _logError(String message) {
-    // TODO: Implement error logging
-    throw UnimplementedError();
-  }
-
-  void _resetLoadingState() {
-    // TODO: Implement loading state reset
-    throw UnimplementedError();
-  }
-
-  void _emitUpdatedState() {
-    // TODO: Implement state emission
-    throw UnimplementedError();
-  }
-
-  FileTreeState _createNewState() {
-    // TODO: Implement new state creation
-    throw UnimplementedError();
-  }
-
-  void _validateStateConsistency() {
-    // TODO: Implement state consistency validation
-    throw UnimplementedError();
-  }
-
-  Set<String> _getSelectedFileIds() {
-    // TODO: Implement selected file IDs retrieval
-    throw UnimplementedError();
-  }
-
-  Future<void> initialize() async {
-    // TODO: Implement cubit initialization
-    throw UnimplementedError();
-  }
-
-  Future<void> buildFileTree(String workspacePath) async {
-    // TODO: Implement file tree building
-    throw UnimplementedError();
-  }
-
-  Future<ExportPreview> generateExportPreview(AppSettings appSettings) async {
-    // TODO: Implement export preview generation
-    throw UnimplementedError();
-  }
-
-  Future<ExportResult> exportToClipboard(AppSettings appSettings) async {
-    // TODO: Implement clipboard export
-    throw UnimplementedError();
-  }
-
-  Future<ExportResult> exportToFile(String baseFileName, AppSettings appSettings) async {
-    // TODO: Implement file export
-    throw UnimplementedError();
-  }
-
-  Future<String> _combineSelectedFiles(AppSettings appSettings) async {
-    // TODO: Implement file combination
-    throw UnimplementedError();
+  /// Get current filtered nodes for external access
+  Map<String, FileNode> get currentFilteredNodes {
+    if (state is FileExplorerLoaded) {
+      return (state as FileExplorerLoaded).filteredNodes;
+    } else if (state is FileExplorerFilterUpdating) {
+      return (state as FileExplorerFilterUpdating).filteredNodes;
+    } else if (state is FileExplorerFilterUpdateSuccess) {
+      return (state as FileExplorerFilterUpdateSuccess).filteredNodes;
+    }
+    return {};
   }
 }
