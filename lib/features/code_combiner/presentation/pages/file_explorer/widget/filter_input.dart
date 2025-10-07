@@ -7,6 +7,7 @@ import 'package:material_design_system/theme/md_theme.dart';
 /// A widget that allows users to input text and manage a list of filter chips.
 ///
 /// This is a "Controlled Widget". It is stateless and relies on the parent
+// ignore: comment_references
 /// to provide the list of [filters] and an [onChanged] callback to signal
 /// when the list should be updated.
 class FilterInput extends HookWidget {

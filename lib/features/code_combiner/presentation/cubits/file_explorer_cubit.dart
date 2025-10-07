@@ -48,13 +48,15 @@ class FileExplorerCubit extends Cubit<FileExplorerState> {
     final node = _allNodes[nodeId];
     if (node == null) return;
 
+    final visibleNodeIds = currentFilteredNodes.keys.toSet();
+
     // Create working copy for atomic updates
     final updatedNodes = Map<String, FileNode>.from(_allNodes);
 
     if (node.type == NodeType.file) {
       _toggleFileSelection(nodeId, node, updatedNodes);
     } else {
-      _toggleFolderSelection(nodeId, node, updatedNodes);
+      _toggleFolderSelection(nodeId, node, updatedNodes, visibleNodeIds);
     }
 
     // Real-time ancestor state updates
@@ -87,32 +89,38 @@ class FileExplorerCubit extends Cubit<FileExplorerState> {
     String folderId,
     FileNode folder,
     Map<String, FileNode> nodes,
+    Set<String> visibleNodeIds,
   ) {
     final newState = folder.selectionState == SelectionState.checked
         ? SelectionState.unchecked
         : SelectionState.checked;
 
-    _setFolderAndDescendants(folderId, newState, nodes);
+    _setFolderAndDescendants(folderId, newState, nodes, visibleNodeIds);
   }
 
   void _setFolderAndDescendants(
     String folderId,
     SelectionState state,
     Map<String, FileNode> nodes,
+    Set<String> visibleNodeIds,
   ) {
     final folder = nodes[folderId];
     if (folder == null) return;
 
+    // Safeguard: only proceed if the folder itself is visible.
+    if (!visibleNodeIds.contains(folderId)) return;
+
     nodes[folderId] = folder.copyWith(selectionState: state);
 
-    // Recursively update all descendants
     for (final childId in folder.childIds) {
       final child = nodes[childId];
       if (child == null) continue;
 
+      // Only apply selection to visible nodes
+      if (!visibleNodeIds.contains(childId)) continue;
+
       nodes[childId] = child.copyWith(selectionState: state);
 
-      // Update selection tracking for files
       if (child.type == NodeType.file) {
         if (state == SelectionState.checked) {
           _selectedFileIds.add(childId);
@@ -120,8 +128,7 @@ class FileExplorerCubit extends Cubit<FileExplorerState> {
           _selectedFileIds.remove(childId);
         }
       } else {
-        // Recursively handle nested folders
-        _setFolderAndDescendants(childId, state, nodes);
+        _setFolderAndDescendants(childId, state, nodes, visibleNodeIds);
       }
     }
   }
@@ -198,7 +205,7 @@ class FileExplorerCubit extends Cubit<FileExplorerState> {
 
     // Emit state to trigger UI rebuild (expansion affects rendering)
     final filteredNodes = _computeFilteredNodes();
-    emit(FileExplorerLoaded(filteredNodes));
+    emit(FileExplorerLoaded(filteredNodes, DateTime.now().millisecondsSinceEpoch));
   }
 
   /// Get expansion state for UI
@@ -207,6 +214,8 @@ class FileExplorerCubit extends Cubit<FileExplorerState> {
   }
 
   // ==================== FILTERING SYSTEM ====================
+
+  final Map<String, bool> _visibilityCache = {};
 
   /// Apply positive filters (session-only, UI display filtering)
   void applyPositiveFilters(Set<String> allowedExtensions) {
@@ -289,15 +298,43 @@ class FileExplorerCubit extends Cubit<FileExplorerState> {
     }
   }
 
-  /// Compute filtered nodes using simultaneous negative + positive filtering
+  /// Compute filtered nodes using a recursive visibility check.
+  /// This prunes empty folders and respects both positive and negative filters.
   Map<String, FileNode> _computeFilteredNodes() {
-    return Map.fromEntries(
-      _allNodes.entries.where((entry) {
-        final node = entry.value;
-        return _passesNegativeFilter(node, _currentFilterSettings) &&
-            _passesPositiveFilter(node, _currentFilterSettings);
-      }),
-    );
+    _visibilityCache.clear();
+    final visibleNodes = <String, FileNode>{};
+    for (final entry in _allNodes.entries) {
+      if (_isNodeVisible(entry.key, _currentFilterSettings)) {
+        visibleNodes[entry.key] = entry.value;
+      }
+    }
+    return visibleNodes;
+  }
+
+  /// Recursively determines if a node is visible based on filters and content.
+  /// Uses memoization for performance.
+  bool _isNodeVisible(String nodeId, FilterSettings settings) {
+    if (_visibilityCache.containsKey(nodeId)) {
+      return _visibilityCache[nodeId]!;
+    }
+
+    final node = _allNodes[nodeId];
+    if (node == null) {
+      _visibilityCache[nodeId] = false;
+      return false;
+    }
+
+    bool isVisible;
+    if (node.type == NodeType.file) {
+      // A file is visible if it passes all filters.
+      isVisible = _passesNegativeFilter(node, settings) && _passesPositiveFilter(node, settings);
+    } else {
+      // A folder is visible if any of its children are visible.
+      isVisible = node.childIds.any((childId) => _isNodeVisible(childId, settings));
+    }
+
+    _visibilityCache[nodeId] = isVisible;
+    return isVisible;
   }
 
   /// Check if node passes negative filters (blocked items)
@@ -332,14 +369,15 @@ class FileExplorerCubit extends Cubit<FileExplorerState> {
 
   /// Check if node passes positive filters (allowed items)
   bool _passesPositiveFilter(FileNode node, FilterSettings settings) {
-    // If no positive filters, show all
+    // If no positive filters, show all files
     if (settings.allowedExtensions.isEmpty) {
       return true;
     }
 
-    // Always show folders (they contain files)
+    // For positive filters, only files can pass on their own.
+    // Folders pass if they have a descendant that passes.
     if (node.type == NodeType.folder) {
-      return true;
+      return true; // This is handled by the recursive _isNodeVisible check
     }
 
     // Check if file extension is allowed

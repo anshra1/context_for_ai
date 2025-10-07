@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:material_design_system/theme/md_theme.dart';
 
 /// Private helper widget to render a single row in the tree.
-class FileTreeRow extends StatelessWidget {
-  const FileTreeRow({
+class FileTreeRowWidget extends StatelessWidget {
+  const FileTreeRowWidget({
     required this.node,
     required this.depth,
     required this.isExpanded,
@@ -47,7 +47,7 @@ class FileTreeRow extends StatelessWidget {
         child: Ink(
           decoration: BoxDecoration(
             color: rowColor?.resolve({}),
-            borderRadius: md.sha.borderRadiusSmall,
+         //   borderRadius: md.sha.borderRadiusSmall,
           ),
           padding: EdgeInsets.only(
             left: indentation,

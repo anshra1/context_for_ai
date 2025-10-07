@@ -2,8 +2,9 @@ import 'package:context_for_ai/features/code_combiner/data/enum/node_type.dart';
 import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/cubits/file_explorer_cubit.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/cubits/states/file_explorer_state.dart';
+import 'package:context_for_ai/features/code_combiner/presentation/pages/file_explorer/view/file_tree_view.dart';
+import 'package:context_for_ai/features/code_combiner/presentation/pages/file_explorer/widget/bottom_buttons.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/pages/file_explorer/widget/filter_input.dart';
-import 'package:context_for_ai/features/code_combiner/presentation/pages/file_explorer/widget/tree_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_design_system/material_design_system.dart';
@@ -70,28 +71,22 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                   ],
                 ),
 
-                SizedBox(height: spacing.large(context)),
-
                 // Filters section
                 SizedBox(height: spacing.small(context)),
                 FilterInput(
-                  onChanged: (value) {},
+                  onChanged: (filters) {
+                    context.read<FileExplorerCubit>().applyPositiveFilters(filters.toSet());
+                  },
                 ),
 
                 SizedBox(height: spacing.small(context)),
 
-                // File list
                 Expanded(
                   child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: tokens.sys.outline),
-                      borderRadius: ShapeTokens().borderRadiusMedium,
-                    ),
+                    decoration: const BoxDecoration(),
                     child: isLoading
                         ? const Center(child: CircularProgressIndicator())
-                        : _TreeView(
-                            nodes: _applySearch(nodes),
-                          ),
+                        : TreeView(nodes: _applySearch(nodes)),
                   ),
                 ),
 
@@ -112,101 +107,6 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
     if (query.isEmpty) return nodes;
     return Map.fromEntries(
       nodes.entries.where((e) => e.value.name.toLowerCase().contains(query)),
-    );
-  }
-}
-
-class BottonButtons extends StatelessWidget {
-  const BottonButtons({
-    required this.spacing,
-    super.key,
-  });
-
-  final SpacingTokens spacing;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        OutlinedButton.icon(
-          onPressed: () {
-            // TODO: Show preview UI
-          },
-          icon: const Icon(Icons.visibility_outlined),
-          label: const Text('Preview'),
-        ),
-        SizedBox(width: spacing.large(context)),
-        ElevatedButton.icon(
-          onPressed: () {
-            // TODO: Copy to clipboard
-          },
-          icon: const Icon(Icons.copy_all_outlined),
-          label: const Text('Copy to Clipboard'),
-        ),
-        SizedBox(width: spacing.large(context)),
-        ElevatedButton.icon(
-          onPressed: () => context.read<FileExplorerCubit>().exportSelectedFiles(),
-          icon: const Icon(Icons.save_alt_outlined),
-          label: const Text('Save as .txt'),
-        ),
-      ],
-    );
-  }
-}
-
-class _TreeView extends StatelessWidget {
-  const _TreeView({required this.nodes});
-
-  final Map<String, FileNode> nodes;
-
-  @override
-  Widget build(BuildContext context) {
-    // Find root nodes (no parent or parent not present)
-    final roots = nodes.values.where(
-      (n) => n.parentId == null || !nodes.containsKey(n.parentId),
-    );
-    return ListView(
-      children: roots.map((n) => _TreeNode(node: n, nodes: nodes, depth: 0)).toList(),
-    );
-  }
-}
-
-class _TreeNode extends StatelessWidget {
-  const _TreeNode({
-    required this.node,
-    required this.nodes,
-    required this.depth,
-  });
-
-  final FileNode node;
-  final Map<String, FileNode> nodes;
-  final int depth;
-
-  @override
-  Widget build(BuildContext context) {
-    final cubit = context.read<FileExplorerCubit>();
-    final isFolder = node.type == NodeType.folder;
-    final isExpanded = isFolder && cubit.isFolderExpanded(node.id);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        FileTreeRow(
-          node: node.type,
-          depth: depth,
-          isExpanded: isExpanded,
-          isSelected: node.selectionState.name == 'checked',
-          onExpansionChanged: () => cubit.toggleFolderExpansion(node.id),
-          onSelectionChanged: () => cubit.toggleNodeSelection(node.id),
-          label: node.name,
-        ),
-        if (isFolder && isExpanded)
-          ...node.childIds
-              .map((id) => nodes[id])
-              .whereType<FileNode>()
-              .map((child) => _TreeNode(node: child, nodes: nodes, depth: depth + 1)),
-      ],
     );
   }
 }

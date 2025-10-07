@@ -24,12 +24,13 @@ class FileExplorerLoading extends FileExplorerState {
 
 /// Loaded state - tree ready for interaction
 class FileExplorerLoaded extends FileExplorerState {
-  const FileExplorerLoaded(this.filteredNodes);
+  const FileExplorerLoaded(this.filteredNodes, [this.version = 0]);
 
   final Map<String, FileNode> filteredNodes;
+  final int version;
 
   @override
-  List<Object> get props => [filteredNodes];
+  List<Object> get props => [filteredNodes, version];
 }
 
 /// Filter updating state - showing current tree with loading indicator

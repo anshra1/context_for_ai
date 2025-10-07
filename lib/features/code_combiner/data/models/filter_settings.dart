@@ -25,6 +25,7 @@ class FilterSettings with _$FilterSettings {
     required int maxFileSizeInMB,
     required bool includeHiddenFiles,
     required Set<String> allowedExtensions,
+    String? searchQuery,
     
   }) = _FilterSettings;
 
@@ -60,6 +61,7 @@ class FilterSettings with _$FilterSettings {
       maxFileSizeInMB: 10,
       includeHiddenFiles: false,
       allowedExtensions: {},
+      searchQuery: null,
      
     );
   }
