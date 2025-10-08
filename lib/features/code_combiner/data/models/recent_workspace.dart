@@ -26,12 +26,4 @@ class RecentWorkspace with _$RecentWorkspace {
       _$RecentWorkspaceFromJson(json);
 
   const RecentWorkspace._();
-
-  /// Extract display name from path (folder name)
-  // String get displayName {
-  //   if (path.isEmpty) return 'Unknown';
-  //   final segments = path.replaceAll(r'\', '/').split('/');
-  //   final lastSegment = segments.lastWhere((s) => s.isNotEmpty, orElse: () => '');
-  //   return lastSegment.isEmpty ? 'Root' : lastSegment;
-  // }
 }

@@ -7,6 +7,15 @@ sealed class WorkspaceState extends Equatable {
   const WorkspaceState();
 }
 
+abstract class WorkspaceStateWithWorkspaces extends WorkspaceState {
+  const WorkspaceStateWithWorkspaces(this.workspaces);
+
+  final List<RecentWorkspace> workspaces;
+
+  @override
+  List<Object> get props => [workspaces];
+}
+
 class WorkspaceInitial extends WorkspaceState {
   const WorkspaceInitial();
 
@@ -14,11 +23,8 @@ class WorkspaceInitial extends WorkspaceState {
   List<Object> get props => [];
 }
 
-class WorkspaceLoading extends WorkspaceState {
-  const WorkspaceLoading();
-
-  @override
-  List<Object> get props => [];
+class WorkspaceLoading extends WorkspaceStateWithWorkspaces {
+  const WorkspaceLoading(super.workspaces);
 }
 
 class WorkspaceError extends WorkspaceState {
@@ -39,13 +45,8 @@ class SuccessState extends WorkspaceState {
   List<Object> get props => [message];
 }
 
-class WorkspaceLoaded extends WorkspaceState {
-  const WorkspaceLoaded(this.workspaces);
-
-  final List<RecentWorkspace> workspaces;
-
-  @override
-  List<Object> get props => [workspaces];
+class WorkspaceLoaded extends WorkspaceStateWithWorkspaces {
+  const WorkspaceLoaded(super.workspaces);
 }
 
 class WorkspaceOpened extends WorkspaceState {

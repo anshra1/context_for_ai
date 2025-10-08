@@ -4,6 +4,7 @@ import 'package:context_for_ai/core/theme/cubit/theme_cubit.dart';
 import 'package:context_for_ai/core/theme/cubit/theme_state.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/cubits/file_explorer_cubit.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/cubits/workspace_cubit.dart';
+import 'package:context_for_ai/features/code_combiner/presentation/pages/settings/cubit/settings_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_design_system/material_design_system.dart';
@@ -17,10 +18,10 @@ class RootApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<ThemeCubit>(
-          create: (context) {
-            final cubit = sl<ThemeCubit>()..init();
-            return cubit;
-          },
+          create: (context) => sl<ThemeCubit>(),
+        ),
+        BlocProvider<SettingsCubit>(
+          create: (context) => sl<SettingsCubit>(),
         ),
         // TODO: Add other providers here as needed
         BlocProvider<WorkspaceCubit>(
@@ -61,7 +62,7 @@ class AppContainer extends StatelessWidget {
         // Build SystemTokens from Facebook brand-like seeds
         final seeds = _facebookReferenceTokens();
         final tokens = isDark
-            ? const StandardLightThemeGenerator().generate(seeds: seeds)
+            ? const StandardDarkThemeGenerator().generate(seeds: seeds)
             : const StandardLightThemeGenerator().generate(seeds: seeds);
 
         // Convert to Flutter ColorScheme and ThemeData
@@ -82,8 +83,7 @@ class AppContainer extends StatelessWidget {
         return MdTheme(
           data: MdThemeToken(sys: tokens),
           child: MaterialApp.router(
-            themeMode:  ThemeMode.light,
-             // state.themeMode,
+            themeMode: state.themeMode,
             debugShowCheckedModeBanner: false,
             title: 'Context for AI',
             theme: theme,

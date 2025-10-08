@@ -1,7 +1,8 @@
 import 'dart:async';
 
+import 'package:context_for_ai/features/code_combiner/data/models/recent_workspace.dart';
 import 'package:context_for_ai/features/code_combiner/domain/usecases/code_combiner_usecase.dart';
-import 'package:context_for_ai/features/code_combiner/presentation/cubits/states/workspace_state.dart';
+import 'package:context_for_ai/features/code_combiner/presentation/cubits/workspace_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class WorkspaceCubit extends Cubit<WorkspaceState> {
@@ -13,7 +14,10 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
 
   /// Load recent workspaces from storage
   Future<void> loadRecentWorkspaces() async {
-    emit(const WorkspaceLoading());
+    final currentWorkspaces = state is WorkspaceStateWithWorkspaces
+        ? (state as WorkspaceStateWithWorkspaces).workspaces
+        : <RecentWorkspace>[];
+    emit(WorkspaceLoading(currentWorkspaces));
     
     final result = await codeCombinerUseCase.getRecentWorkspaces();
     
@@ -29,7 +33,10 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
       return;
     }
 
-    emit(const WorkspaceLoading());
+    final currentWorkspaces = state is WorkspaceStateWithWorkspaces
+        ? (state as WorkspaceStateWithWorkspaces).workspaces
+        : <RecentWorkspace>[];
+    emit(WorkspaceLoading(currentWorkspaces));
     
     final result = await codeCombinerUseCase.openDirectoryTree(directoryPath);
     
@@ -39,6 +46,7 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
         // Emit WorkspaceOpened state with the complete workspace data
         // This includes file tree, settings, and workspace path
         emit(WorkspaceOpened(workspaceData));
+        loadRecentWorkspaces();
         
         // The UI can now:
         // 1. Navigate to file explorer with the loaded file tree
@@ -60,7 +68,10 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
       return;
     }
 
-    emit(const WorkspaceLoading());
+    final currentWorkspaces = state is WorkspaceStateWithWorkspaces
+        ? (state as WorkspaceStateWithWorkspaces).workspaces
+        : <RecentWorkspace>[];
+    emit(WorkspaceLoading(currentWorkspaces));
     
     final result = await codeCombinerUseCase.removeRecentWorkspace(workspacePath);
     
@@ -75,7 +86,10 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
 
   /// Clear all recent workspaces
   Future<void> clearRecentWorkspaces() async {
-    emit(const WorkspaceLoading());
+    final currentWorkspaces = state is WorkspaceStateWithWorkspaces
+        ? (state as WorkspaceStateWithWorkspaces).workspaces
+        : <RecentWorkspace>[];
+    emit(WorkspaceLoading(currentWorkspaces));
     
     final result = await codeCombinerUseCase.clearRecentWorkspaces();
     
@@ -114,7 +128,10 @@ class WorkspaceCubit extends Cubit<WorkspaceState> {
 
   /// Clean up invalid workspaces from recent list
   Future<void> cleanupInvalidWorkspaces() async {
-    emit(const WorkspaceLoading());
+    final currentWorkspaces = state is WorkspaceStateWithWorkspaces
+        ? (state as WorkspaceStateWithWorkspaces).workspaces
+        : <RecentWorkspace>[];
+    emit(WorkspaceLoading(currentWorkspaces));
     
     // Get current workspaces
     final getResult = await codeCombinerUseCase.getRecentWorkspaces();

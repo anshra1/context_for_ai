@@ -6,6 +6,7 @@ import 'package:context_for_ai/features/code_combiner/domain/repositories/code_c
 import 'package:context_for_ai/features/code_combiner/domain/usecases/code_combiner_usecase.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/cubits/file_explorer_cubit.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/cubits/workspace_cubit.dart';
+import 'package:context_for_ai/features/code_combiner/presentation/pages/settings/cubit/settings_cubit.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -17,12 +18,17 @@ Future<void> init() async {
 }
 
 Future<void> _core() async {
-  // Theme cubit
+  // SharedPreferences as async singleton
+  sl.registerSingletonAsync<SharedPreferences>(SharedPreferences.getInstance);
+  await sl.isReady<SharedPreferences>();
+
+  // Register and init cubits that depend on SharedPreferences
   sl
     ..registerLazySingleton<ThemeCubit>(ThemeCubit.new)
-    // SharedPreferences as async singleton
-    ..registerSingletonAsync<SharedPreferences>(SharedPreferences.getInstance);
-  await sl.isReady<SharedPreferences>();
+    ..registerLazySingleton<SettingsCubit>(() => SettingsCubit(prefs: sl()));
+  
+  await sl<ThemeCubit>().init();
+  await sl<SettingsCubit>().init();
 }
 
 Future<void> _codeCombiner() async {
@@ -44,7 +50,7 @@ Future<void> _codeCombiner() async {
       () => CodeCombinerUseCase(repository: sl<CodeCombinerRepository>()),
     )
     // Cubits
-    ..registerFactory<WorkspaceCubit>(
+    ..registerLazySingleton<WorkspaceCubit>(
       () => WorkspaceCubit(codeCombinerUseCase: sl<CodeCombinerUseCase>()),
     )
     ..registerFactory<FileExplorerCubit>(

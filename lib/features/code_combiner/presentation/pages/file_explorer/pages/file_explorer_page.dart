@@ -1,37 +1,38 @@
+import 'package:context_for_ai/core/routes/route_name.dart';
 import 'package:context_for_ai/features/code_combiner/data/enum/node_type.dart';
 import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/cubits/file_explorer_cubit.dart';
-import 'package:context_for_ai/features/code_combiner/presentation/cubits/states/file_explorer_state.dart';
+import 'package:context_for_ai/features/code_combiner/presentation/cubits/file_explorer_state.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/pages/file_explorer/view/file_tree_view.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/pages/file_explorer/widget/bottom_buttons.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/pages/file_explorer/widget/filter_input.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_design_system/material_design_system.dart';
+
+import 'package:context_for_ai/features/code_combiner/domain/repositories/code_combiner_repository.dart';
 
 class FileExplorerPage extends StatefulWidget {
   const FileExplorerPage({required this.workspaceData, super.key});
 
-  final String workspaceData;
+  final Object workspaceData;
 
   @override
   State<FileExplorerPage> createState() => _FileExplorerPageState();
 }
 
 class _FileExplorerPageState extends State<FileExplorerPage> {
-  final TextEditingController _searchController = TextEditingController();
-  final Set<String> _allowedExtensions = <String>{};
-
   @override
   void initState() {
     super.initState();
-    context.read<FileExplorerCubit>().initialize(widget.workspaceData);
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+    final cubit = context.read<FileExplorerCubit>();
+    final data = widget.workspaceData;
+    if (data is WorkspaceData) {
+      cubit.initializeFromWorkspaceData(data);
+    } else if (data is String) {
+      cubit.initialize(data);
+    }
   }
 
   @override
@@ -53,6 +54,13 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
           appBar: AppBar(
             title: const Text('File Export'),
             centerTitle: false,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.settings_outlined),
+                onPressed: () => context.pushNamed(RoutesName.settings),
+              ),
+              const SizedBox(width: 8),
+            ],
           ),
           body: Padding(
             padding: EdgeInsets.all(spacing.large(context)),
@@ -75,7 +83,12 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                 SizedBox(height: spacing.small(context)),
                 FilterInput(
                   onChanged: (filters) {
-                    context.read<FileExplorerCubit>().applyPositiveFilters(filters.toSet());
+                    context.read<FileExplorerCubit>().applyPositiveFilters(
+                      filters.toSet(),
+                    );
+                  },
+                  onSearchChanged: (query) {
+                    context.read<FileExplorerCubit>().applySearchQuery(query);
                   },
                 ),
 
@@ -86,7 +99,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                     decoration: const BoxDecoration(),
                     child: isLoading
                         ? const Center(child: CircularProgressIndicator())
-                        : TreeView(nodes: _applySearch(nodes)),
+                        : TreeView(nodes: nodes),
                   ),
                 ),
 
@@ -99,14 +112,6 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
           ),
         );
       },
-    );
-  }
-
-  Map<String, FileNode> _applySearch(Map<String, FileNode> nodes) {
-    final query = _searchController.text.trim().toLowerCase();
-    if (query.isEmpty) return nodes;
-    return Map.fromEntries(
-      nodes.entries.where((e) => e.value.name.toLowerCase().contains(query)),
     );
   }
 }

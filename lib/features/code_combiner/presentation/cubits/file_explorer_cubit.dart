@@ -1,9 +1,13 @@
+//
+// ignore_for_file: avoid_positional_boolean_parameters
+
 import 'package:context_for_ai/features/code_combiner/data/enum/node_type.dart';
 import 'package:context_for_ai/features/code_combiner/data/enum/selection_state.dart';
 import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
 import 'package:context_for_ai/features/code_combiner/data/models/filter_settings.dart';
+import 'package:context_for_ai/features/code_combiner/domain/repositories/code_combiner_repository.dart';
 import 'package:context_for_ai/features/code_combiner/domain/usecases/code_combiner_usecase.dart';
-import 'package:context_for_ai/features/code_combiner/presentation/cubits/states/file_explorer_state.dart';
+import 'package:context_for_ai/features/code_combiner/presentation/cubits/file_explorer_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// FileExplorerCubit following Clean Architecture with proper sealed states
@@ -22,17 +26,43 @@ class FileExplorerCubit extends Cubit<FileExplorerState> {
 
   // ==================== INITIALIZATION ====================
 
+  /// Initialize workspace with existing data
+  Future<void> initializeFromWorkspaceData(WorkspaceData workspaceData) async {
+    emit(const FileExplorerLoading());
+
+    // Store complete tree locally
+    _allNodes = workspaceData.fileTree;
+
+    // Use filter settings from the provided workspace data
+    _currentFilterSettings = workspaceData.filterSettings;
+
+    // Compute initial filtered nodes and emit
+    final filteredNodes = _computeFilteredNodes();
+    emit(FileExplorerLoaded(filteredNodes));
+  }
+
   /// Initialize workspace - scan directory and load settings
   Future<void> initialize(String workspacePath) async {
     emit(const FileExplorerLoading());
 
     final result = await useCase.openDirectoryTree(workspacePath);
-    result.fold(
-      (failure) => emit(FileExplorerError(failure.message)),
-      (workspaceData) {
+    await result.fold(
+      (failure) async => emit(FileExplorerError(failure.message)),
+      (workspaceData) async {
         // Store complete tree locally (one-time scan per session)
         _allNodes = workspaceData.fileTree;
-        _currentFilterSettings = workspaceData.filterSettings;
+
+        // Now, fetch the saved filter settings to override any defaults
+        final settingsResult = await useCase.getFilterSettings();
+        settingsResult.fold(
+          (settingsFailure) {
+            // If loading settings fails, fall back to the ones from the workspace
+            _currentFilterSettings = workspaceData.filterSettings;
+          },
+          (savedSettings) {
+            _currentFilterSettings = savedSettings;
+          },
+        );
 
         // Compute initial filtered nodes and emit
         final filteredNodes = _computeFilteredNodes();
@@ -215,7 +245,59 @@ class FileExplorerCubit extends Cubit<FileExplorerState> {
 
   // ==================== FILTERING SYSTEM ====================
 
+  /// Public getter for the current filter settings to be displayed in the UI.
+  FilterSettings get currentFilterSettings => _currentFilterSettings;
+
+  /// Updates the set of blocked file extensions.
+  void updateBlockedExtensions(String extensions) {
+    final newSet = extensions.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
+    _currentFilterSettings = _currentFilterSettings.copyWith(blockedExtensions: newSet);
+    useCase.saveFilterSettings(_currentFilterSettings);
+    final filteredNodes = _computeFilteredNodes();
+    emit(FileExplorerLoaded(filteredNodes, DateTime.now().millisecondsSinceEpoch));
+  }
+
+  /// Updates the sets of blocked folder and file names from a single string.
+  void updateBlockedFoldersAndFiles(String names) {
+    final newFolders = <String>{};
+    final newFiles = <String>{};
+    final entries = names.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty);
+
+    for (final entry in entries) {
+      if (entry.endsWith('/')) {
+        newFolders.add(entry.substring(0, entry.length - 1)); // Remove trailing slash
+      } else {
+        newFiles.add(entry);
+      }
+    }
+
+    _currentFilterSettings = _currentFilterSettings.copyWith(
+      blockedFolderNames: newFolders,
+      blockedFileNames: newFiles,
+    );
+    useCase.saveFilterSettings(_currentFilterSettings);
+    final filteredNodes = _computeFilteredNodes();
+    emit(FileExplorerLoaded(filteredNodes, DateTime.now().millisecondsSinceEpoch));
+  }
+
+  /// Updates the flag for including hidden files.
+  void toggleIncludeHiddenFiles(bool value) {
+    _currentFilterSettings = _currentFilterSettings.copyWith(includeHiddenFiles: value);
+    useCase.saveFilterSettings(_currentFilterSettings);
+    final filteredNodes = _computeFilteredNodes();
+    emit(FileExplorerLoaded(filteredNodes, DateTime.now().millisecondsSinceEpoch));
+  }
+
   final Map<String, bool> _visibilityCache = {};
+
+  /// Apply search query filter.
+  void applySearchQuery(String query) {
+    _currentFilterSettings = _currentFilterSettings.copyWith(
+      searchQuery: query,
+    );
+    final filteredNodes = _computeFilteredNodes();
+    emit(FileExplorerLoaded(filteredNodes, DateTime.now().millisecondsSinceEpoch));
+  }
 
   /// Apply positive filters (session-only, UI display filtering)
   void applyPositiveFilters(Set<String> allowedExtensions) {
@@ -225,7 +307,7 @@ class FileExplorerCubit extends Cubit<FileExplorerState> {
 
     // Recompute filtered tree and emit
     final filteredNodes = _computeFilteredNodes();
-    emit(FileExplorerLoaded(filteredNodes));
+    emit(FileExplorerLoaded(filteredNodes, DateTime.now().millisecondsSinceEpoch));
   }
 
   /// Update negative filters (from datasource with selection cleanup)
@@ -293,13 +375,14 @@ class FileExplorerCubit extends Cubit<FileExplorerState> {
           });
         },
       );
-    } catch (e) {
+    } on Exception
+     catch (e) {
       emit(FileExplorerError('Failed to update filters: $e'));
     }
   }
 
   /// Compute filtered nodes using a recursive visibility check.
-  /// This prunes empty folders and respects both positive and negative filters.
+  /// This prunes empty folders and respects all filters.
   Map<String, FileNode> _computeFilteredNodes() {
     _visibilityCache.clear();
     final visibleNodes = <String, FileNode>{};
@@ -324,10 +407,17 @@ class FileExplorerCubit extends Cubit<FileExplorerState> {
       return false;
     }
 
+    // All nodes must pass negative filters.
+    if (!_passesNegativeFilter(node, settings)) {
+      _visibilityCache[nodeId] = false;
+      return false;
+    }
+
     bool isVisible;
     if (node.type == NodeType.file) {
-      // A file is visible if it passes all filters.
-      isVisible = _passesNegativeFilter(node, settings) && _passesPositiveFilter(node, settings);
+      // Files must also pass positive (extension) and search filters.
+      isVisible =
+          _passesPositiveFilter(node, settings) && _passesSearchQuery(node, settings);
     } else {
       // A folder is visible if any of its children are visible.
       isVisible = node.childIds.any((childId) => _isNodeVisible(childId, settings));
@@ -335,6 +425,15 @@ class FileExplorerCubit extends Cubit<FileExplorerState> {
 
     _visibilityCache[nodeId] = isVisible;
     return isVisible;
+  }
+
+  bool _passesSearchQuery(FileNode node, FilterSettings settings) {
+    final searchQuery = settings.searchQuery?.trim().toLowerCase();
+    if (searchQuery == null || searchQuery.isEmpty) {
+      return true; // No search query means everything passes.
+    }
+    // The search query must be contained in the node's name.
+    return node.name.toLowerCase().contains(searchQuery);
   }
 
   /// Check if node passes negative filters (blocked items)

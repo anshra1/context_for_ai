@@ -14,16 +14,18 @@ class FilterInput extends HookWidget {
   /// Creates a filter input widget.
   const FilterInput({
     required this.onChanged,
+    this.onSearchChanged,
     super.key,
-    this.hintText = 'Add Filter(e.g , .dart, .yaml)',
+    this.hintText = 'Search files or add extension filter (e.g., .dart)',
     this.addButtonChild = const Text('Add Filter'),
   });
-
-  /// The current list of filters to display.
 
   /// A callback that provides the updated list when a filter is added or removed.
   /// The parent widget is responsible for updating its state with this new list.
   final ValueChanged<List<String>> onChanged;
+
+  /// A callback that provides the updated search query as the user types.
+  final ValueChanged<String>? onSearchChanged;
 
   /// The hint text to display in the text field.
   final String hintText;
@@ -51,7 +53,6 @@ class FilterInput extends HookWidget {
       focusNode.requestFocus();
     }
 
-    
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,6 +64,7 @@ class FilterInput extends HookWidget {
                 controller: textController,
                 focusNode: focusNode,
                 style: md.com.textField.textStyle,
+                onChanged: onSearchChanged,
                 onSubmitted: (_) => addFilter(),
                 onEditingComplete: addFilter,
                 decoration: InputDecoration(

@@ -5,11 +5,13 @@ class RecentWorkspacesList extends StatelessWidget {
   const RecentWorkspacesList({
     required this.recentPaths,
     required this.onTapPath,
+    this.loadingPath,
     super.key,
   });
 
   final List<String> recentPaths;
   final void Function(String path) onTapPath;
+  final String? loadingPath;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +44,11 @@ class RecentWorkspacesList extends StatelessWidget {
             cursor: SystemMouseCursors.click,
             child: GestureDetector(
               onTap: () => onTapPath(path),
-              child: FilePathTile(filePath: path, onTap: () => onTapPath(path)),
+              child: FilePathTile(
+                filePath: path,
+                onTap: () => onTapPath(path),
+                isLoading: loadingPath == path,
+              ),
             ),
           ),
         );
