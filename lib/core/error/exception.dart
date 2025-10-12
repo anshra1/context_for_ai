@@ -1,6 +1,6 @@
-import 'package:context_for_ai/core/error/error_priority_enum.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
+import 'package:text_merger/core/error/error_priority_enum.dart';
 
 /// Base exception class for application-wide error handling.
 ///
@@ -45,15 +45,15 @@ abstract class AppException extends Equatable implements Exception {
 
   @override
   List<Object?> get props => [
-        userMessage,
-        debugDetails,
-        stackTrace,
-        priority,
-        isRecoverable,
-        methodName,
-        originalError,
-        title, // Include title in props
-      ];
+    userMessage,
+    debugDetails,
+    stackTrace,
+    priority,
+    isRecoverable,
+    methodName,
+    originalError,
+    title, // Include title in props
+  ];
 
   @override
   String toString() {
@@ -225,7 +225,8 @@ class UnknownException extends AppException {
     required super.methodName,
     required super.originalError,
     required super.title,
-     super.userMessage = 'Unknown error occurred', // Added title to constructor, super.userMessage = 'An unexpected error occurred',
+    super.userMessage =
+        'Unknown error occurred', // Added title to constructor, super.userMessage = 'An unexpected error occurred',
     super.debugDetails,
     super.stackTrace,
     super.priority = ErrorPriority.medium,

@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:context_for_ai/features/code_combiner/data/models/recent_workspace.dart';
 import 'package:flutter/material.dart';
+import 'package:text_merger/features/code_combiner/data/models/recent_workspace.dart';
 
 class RecentWorkspaceCard extends StatelessWidget {
   const RecentWorkspaceCard({

@@ -1,6 +1,6 @@
-import 'package:context_for_ai/core/services/loading_service/widget/progress_indicator_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:text_merger/core/services/loading_service/widget/progress_indicator_widget.dart';
 import 'package:toastification/toastification.dart';
 
 /// Rules for using LoadingToastService:
@@ -24,8 +24,8 @@ class LoadingToastService {
   LoadingToastService({
     required Toastification toastification,
     required ValueNotifier<(String message, double progress)> dataNotifier,
-  })  : _toastification = toastification,
-        _dataNotifier = dataNotifier;
+  }) : _toastification = toastification,
+       _dataNotifier = dataNotifier;
 
   final Toastification _toastification;
 

@@ -4,14 +4,15 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:context_for_ai/features/code_combiner/data/enum/node_type.dart';
-import 'package:context_for_ai/features/code_combiner/data/enum/selection_state.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/filter_settings.dart';
-import 'package:context_for_ai/features/code_combiner/domain/repositories/code_combiner_repository.dart';
-import 'package:context_for_ai/features/code_combiner/domain/usecases/code_combiner_usecase.dart';
-import 'package:context_for_ai/features/code_combiner/presentation/cubits/file_explorer_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:text_merger/features/code_combiner/data/enum/node_type.dart';
+import 'package:text_merger/features/code_combiner/data/enum/selection_state.dart';
+import 'package:text_merger/features/code_combiner/data/models/export_preview.dart';
+import 'package:text_merger/features/code_combiner/data/models/file_node.dart';
+import 'package:text_merger/features/code_combiner/data/models/filter_settings.dart';
+import 'package:text_merger/features/code_combiner/domain/repositories/code_combiner_repository.dart';
+import 'package:text_merger/features/code_combiner/domain/usecases/code_combiner_usecase.dart';
+import 'package:text_merger/features/code_combiner/presentation/cubits/file_explorer_state.dart';
 
 /// FileExplorerCubit following Clean Architecture with proper sealed states
 /// Manages file tree selection, filtering, and expansion with optimal memory usage
@@ -62,7 +63,7 @@ class FileExplorerCubit extends Cubit<FileExplorerState> {
           );
 
       await result.fold(
-        (failure) async => emit(FileExplorerError(failure.message)),
+        (failure) async => emit(FileExplorerError(failure.message ?? 'Unknown error')),
         (workspaceData) async {
           // Store complete tree locally (one-time scan per session)
           _allNodes = workspaceData.fileTree;
@@ -363,7 +364,7 @@ class FileExplorerCubit extends Cubit<FileExplorerState> {
 
       result.fold(
         (failure) {
-          emit(FileExplorerError(failure.message));
+          emit(FileExplorerError(failure.message ?? 'Unknown error'));
         },
         (newFilterSettings) {
           // Count selections before cleanup
@@ -527,8 +528,10 @@ class FileExplorerCubit extends Cubit<FileExplorerState> {
   // ==================== EXPORT OPERATIONS ====================
 
   /// Export selected files (delegates to datasource)
-  Future<void> exportSelectedFiles() async {
-    if (_selectedFileIds.isEmpty) return;
+  /// [savePath] - Optional custom path for saving. If null, uses default location from settings
+  /// Returns ExportPreview on success, null on failure or no selection
+  Future<ExportPreview?> exportSelectedFiles({String? savePath}) async {
+    if (_selectedFileIds.isEmpty) return null;
 
     emit(const FileExplorerLoading());
 
@@ -538,13 +541,17 @@ class FileExplorerCubit extends Cubit<FileExplorerState> {
         .whereType<String>()
         .toList();
 
-    final result = await useCase.exportFiles(selectedPaths);
-    result.fold(
-      (failure) => emit(FileExplorerError(failure.message)),
+    final result = await useCase.exportFiles(selectedPaths, customSavePath: savePath);
+    return result.fold(
+      (failure) {
+        emit(FileExplorerError(failure.message ?? 'Unknown error'));
+        return null;
+      },
       (exportPreview) {
         // Export successful - return to loaded state
         final filteredNodes = _computeFilteredNodes();
         emit(FileExplorerLoaded(filteredNodes));
+        return exportPreview;
       },
     );
   }

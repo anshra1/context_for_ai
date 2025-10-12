@@ -1,7 +1,7 @@
-import 'package:context_for_ai/core/error/failure.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/recent_workspace.dart';
-import 'package:context_for_ai/features/code_combiner/domain/repositories/code_combiner_repository.dart';
 import 'package:equatable/equatable.dart';
+import 'package:text_merger/core/error/failure.dart';
+import 'package:text_merger/features/code_combiner/data/models/recent_workspace.dart';
+import 'package:text_merger/features/code_combiner/domain/repositories/code_combiner_repository.dart';
 
 sealed class WorkspaceState extends Equatable {
   const WorkspaceState();

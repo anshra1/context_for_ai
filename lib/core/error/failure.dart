@@ -1,9 +1,9 @@
 // Package imports:
 
-import 'package:context_for_ai/core/error/error_priority_enum.dart';
 import 'package:equatable/equatable.dart';
+import 'package:text_merger/core/error/error_priority_enum.dart';
 
- class Failure extends Equatable {
+class Failure extends Equatable {
   const Failure({
     required this.message,
     required this.title, // Title is now required
@@ -50,7 +50,7 @@ class NetworkFailure extends Failure {
   });
 }
 
-/// Failure for cache-related errors  
+/// Failure for cache-related errors
 class CacheFailure extends Failure {
   const CacheFailure({
     required super.message,
@@ -89,4 +89,3 @@ class UnknownFailure extends Failure {
     super.isRecoverable = false,
   });
 }
-

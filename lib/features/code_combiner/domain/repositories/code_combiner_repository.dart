@@ -1,9 +1,9 @@
-import 'package:context_for_ai/core/typedefs/type.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/app_settings.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/export_preview.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/filter_settings.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/recent_workspace.dart';
+import 'package:text_merger/core/typedefs/type.dart';
+import 'package:text_merger/features/code_combiner/data/models/app_settings.dart';
+import 'package:text_merger/features/code_combiner/data/models/export_preview.dart';
+import 'package:text_merger/features/code_combiner/data/models/file_node.dart';
+import 'package:text_merger/features/code_combiner/data/models/filter_settings.dart';
+import 'package:text_merger/features/code_combiner/data/models/recent_workspace.dart';
 
 /// Single repository for all Code Combiner operations
 /// Coordinates file system and local storage operations as one cohesive feature
@@ -31,7 +31,11 @@ abstract class CodeCombinerRepository {
   ResultFuture<String> readFileContent(String filePath);
 
   /// Export files workflow: read + combine + export + update settings
-  ResultFuture<ExportPreview> exportFiles(List<String> filePaths);
+  /// [customSavePath] - Optional custom path for saving. If null, uses default location from settings
+  ResultFuture<ExportPreview> exportFiles(
+    List<String> filePaths, {
+    String? customSavePath,
+  });
 
   // ==================== Settings Management ====================
 

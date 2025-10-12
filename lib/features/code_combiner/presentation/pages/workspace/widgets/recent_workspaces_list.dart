@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:context_for_ai/features/code_combiner/data/models/recent_workspace.dart';
-import 'package:context_for_ai/features/code_combiner/presentation/pages/workspace/widgets/recent_workspace_card.dart';
 import 'package:flutter/material.dart';
+import 'package:text_merger/features/code_combiner/data/models/recent_workspace.dart';
+import 'package:text_merger/features/code_combiner/presentation/pages/workspace/widgets/recent_workspace_card.dart';
 
 enum ViewMode { list, grid }
 

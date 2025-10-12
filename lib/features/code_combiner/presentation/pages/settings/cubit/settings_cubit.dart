@@ -4,10 +4,10 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:context_for_ai/features/code_combiner/data/models/settings_model.dart';
-import 'package:context_for_ai/features/code_combiner/presentation/pages/settings/cubit/settings_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:text_merger/features/code_combiner/data/models/settings_model.dart';
+import 'package:text_merger/features/code_combiner/presentation/pages/settings/cubit/settings_state.dart';
 
 class SettingsCubit extends Cubit<SettingsState> {
   SettingsCubit({required this.prefs}) : super(SettingsState.initial());

@@ -1,6 +1,6 @@
-import 'package:context_for_ai/features/code_combiner/data/enum/node_type.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_system/theme/md_theme.dart';
+import 'package:text_merger/features/code_combiner/data/enum/node_type.dart';
 
 /// Private helper widget to render a single row in the tree.
 class FileTreeRowWidget extends StatelessWidget {
@@ -47,7 +47,7 @@ class FileTreeRowWidget extends StatelessWidget {
         child: Ink(
           decoration: BoxDecoration(
             color: rowColor?.resolve({}),
-         //   borderRadius: md.sha.borderRadiusSmall,
+            //   borderRadius: md.sha.borderRadiusSmall,
           ),
           padding: EdgeInsets.only(
             left: indentation,

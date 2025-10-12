@@ -1,5 +1,5 @@
-import 'package:context_for_ai/core/error/exception.dart';
-import 'package:context_for_ai/core/error/failure.dart';
+import 'package:text_merger/core/error/exception.dart';
+import 'package:text_merger/core/error/failure.dart';
 
 class ErrorMapper {
   static Failure mapErrorToFailure(dynamic error) {
@@ -75,7 +75,6 @@ class ErrorMapper {
     // Unknown/Unexpected Errors
     return const UnknownFailure(
       message: 'Unknown Error',
-      title: 'Unknown Error', // Added title
     );
   }
 }

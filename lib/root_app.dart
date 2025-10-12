@@ -1,14 +1,13 @@
-import 'package:context_for_ai/core/di/di.dart';
-import 'package:context_for_ai/core/routes/routes.dart';
-import 'package:context_for_ai/core/theme/cubit/theme_cubit.dart';
-import 'package:context_for_ai/core/theme/cubit/theme_state.dart';
-import 'package:context_for_ai/features/code_combiner/presentation/cubits/file_explorer_cubit.dart';
-import 'package:context_for_ai/features/code_combiner/presentation/cubits/workspace_cubit.dart';
-import 'package:context_for_ai/features/code_combiner/presentation/pages/settings/cubit/settings_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_design_system/material_design_system.dart';
-
+import 'package:text_merger/core/di/di.dart';
+import 'package:text_merger/core/routes/routes.dart';
+import 'package:text_merger/core/theme/cubit/theme_cubit.dart';
+import 'package:text_merger/core/theme/cubit/theme_state.dart';
+import 'package:text_merger/features/code_combiner/presentation/cubits/file_explorer_cubit.dart';
+import 'package:text_merger/features/code_combiner/presentation/cubits/workspace_cubit.dart';
+import 'package:text_merger/features/code_combiner/presentation/pages/settings/cubit/settings_cubit.dart';
 
 class RootApp extends StatelessWidget {
   const RootApp({super.key});
@@ -70,7 +69,7 @@ class AppContainer extends StatelessWidget {
           tokens,
           effectiveBrightness,
         );
-        
+
         final theme = ThemeData(
           useMaterial3: true,
           brightness: effectiveBrightness,

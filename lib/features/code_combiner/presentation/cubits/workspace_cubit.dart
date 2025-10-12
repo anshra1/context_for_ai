@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:context_for_ai/features/code_combiner/data/models/recent_workspace.dart';
-import 'package:context_for_ai/features/code_combiner/domain/usecases/code_combiner_usecase.dart';
-import 'package:context_for_ai/features/code_combiner/presentation/cubits/workspace_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:text_merger/features/code_combiner/data/models/recent_workspace.dart';
+import 'package:text_merger/features/code_combiner/domain/usecases/code_combiner_usecase.dart';
+import 'package:text_merger/features/code_combiner/presentation/cubits/workspace_state.dart';
 
 class WorkspaceCubit extends Cubit<WorkspaceState> {
   WorkspaceCubit({

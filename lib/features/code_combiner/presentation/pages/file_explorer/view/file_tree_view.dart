@@ -1,9 +1,9 @@
-import 'package:context_for_ai/features/code_combiner/data/enum/node_type.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
-import 'package:context_for_ai/features/code_combiner/presentation/cubits/file_explorer_cubit.dart';
-import 'package:context_for_ai/features/code_combiner/presentation/pages/file_explorer/widget/file_tree_row_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:text_merger/features/code_combiner/data/enum/node_type.dart';
+import 'package:text_merger/features/code_combiner/data/models/file_node.dart';
+import 'package:text_merger/features/code_combiner/presentation/cubits/file_explorer_cubit.dart';
+import 'package:text_merger/features/code_combiner/presentation/pages/file_explorer/widget/file_tree_row_widget.dart';
 
 class TreeView extends StatelessWidget {
   const TreeView({required this.nodes, super.key});

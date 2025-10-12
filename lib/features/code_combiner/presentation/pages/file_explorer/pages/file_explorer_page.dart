@@ -1,17 +1,18 @@
 import 'dart:io';
 
-import 'package:context_for_ai/core/routes/route_name.dart';
-import 'package:context_for_ai/features/code_combiner/data/enum/node_type.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
-import 'package:context_for_ai/features/code_combiner/domain/repositories/code_combiner_repository.dart';
-import 'package:context_for_ai/features/code_combiner/presentation/cubits/file_explorer_cubit.dart';
-import 'package:context_for_ai/features/code_combiner/presentation/cubits/file_explorer_state.dart';
-import 'package:context_for_ai/features/code_combiner/presentation/pages/file_explorer/view/file_tree_view.dart';
-import 'package:context_for_ai/features/code_combiner/presentation/pages/file_explorer/widget/filter_input.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_design_system/material_design_system.dart';
+import 'package:text_merger/core/routes/route_name.dart';
+import 'package:text_merger/features/code_combiner/data/enum/node_type.dart';
+import 'package:text_merger/features/code_combiner/data/models/file_node.dart';
+import 'package:text_merger/features/code_combiner/domain/repositories/code_combiner_repository.dart';
+import 'package:text_merger/features/code_combiner/presentation/cubits/file_explorer_cubit.dart';
+import 'package:text_merger/features/code_combiner/presentation/cubits/file_explorer_state.dart';
+import 'package:text_merger/features/code_combiner/presentation/pages/file_explorer/view/file_tree_view.dart';
+import 'package:text_merger/features/code_combiner/presentation/pages/file_explorer/widget/filter_input.dart';
 import 'package:toastification/toastification.dart';
 
 class FileExplorerPage extends StatefulWidget {
@@ -50,11 +51,27 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
         if (state is FileExplorerError) {
           toastification.show(
             context: context,
-            title: const Text('Error'),
-            description: Text(state.message),
+            title: const Text(
+              'Error',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            description: Text(
+              state.message,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
+              ),
+            ),
             type: ToastificationType.error,
             style: ToastificationStyle.fillColored,
             autoCloseDuration: const Duration(seconds: 5),
+            backgroundColor: Colors.red.shade600,
+            foregroundColor: Colors.white,
           );
         }
       },
@@ -69,7 +86,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
 
         return Scaffold(
           floatingActionButton: FloatingActionButton.extended(
-            onPressed: () => context.read<FileExplorerCubit>().exportSelectedFiles(),
+            onPressed: () => _handleSaveAs(context),
             icon: const Icon(Icons.save_alt_outlined),
             label: const Text('Save As'),
             backgroundColor: Theme.of(context).colorScheme.primary,
@@ -99,7 +116,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                         GestureDetector(
                           onTap: () {},
                           child: const Text(
-                            'Combine Files',
+                            'Text Merger',
                             style: TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.w500,
@@ -161,6 +178,85 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
         );
       },
     );
+  }
+
+  Future<void> _handleSaveAs(BuildContext context) async {
+    // Get app settings for default location
+    final cubit = context.read<FileExplorerCubit>();
+
+    // Show file picker save dialog
+    final savePath = await FilePicker.platform.saveFile(
+      dialogTitle: 'Save Text Merger File',
+      fileName: 'text_merger_${DateTime.now().millisecondsSinceEpoch}.txt',
+      type: FileType.custom,
+      allowedExtensions: ['txt'],
+    );
+
+    if (savePath == null) {
+      // User cancelled
+      if (!context.mounted) return;
+      toastification.show(
+        context: context,
+        title: const Text(
+          'Save Cancelled',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        description: const Text(
+          'File save operation was cancelled',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.white,
+          ),
+        ),
+        type: ToastificationType.warning,
+        style: ToastificationStyle.fillColored,
+        autoCloseDuration: const Duration(seconds: 3),
+        backgroundColor: Colors.orange.shade600,
+        foregroundColor: Colors.white,
+      );
+      return;
+    }
+
+    // Export with custom path
+    final exportPreview = await cubit.exportSelectedFiles(savePath: savePath);
+
+    if (!context.mounted) return;
+
+    if (exportPreview != null && exportPreview.successedReturnedFiles.isNotEmpty) {
+      final savedFile = exportPreview.successedReturnedFiles.first;
+      final fileName = savedFile.path.split(Platform.pathSeparator).last;
+      final fileLocation = savedFile.parent.path;
+
+      toastification.show(
+        context: context,
+        title: const Text(
+          'File Saved Successfully',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        description: Text(
+          '$fileName\nLocation: $fileLocation',
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.white,
+          ),
+        ),
+        type: ToastificationType.success,
+        style: ToastificationStyle.fillColored,
+        autoCloseDuration: const Duration(seconds: 5),
+        backgroundColor: Colors.green.shade600,
+        foregroundColor: Colors.white,
+      );
+    }
   }
 
   void _showTimeoutDialog(BuildContext context, FileExplorerTimeout state) {

@@ -13,11 +13,11 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:context_for_ai/core/error/exception.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/app_settings.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/filter_settings.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/recent_workspace.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:text_merger/core/error/exception.dart';
+import 'package:text_merger/features/code_combiner/data/models/app_settings.dart';
+import 'package:text_merger/features/code_combiner/data/models/filter_settings.dart';
+import 'package:text_merger/features/code_combiner/data/models/recent_workspace.dart';
 
 abstract class LocalStorageDataSource {
   /// Purpose: Add workspace path to recent list (handles deduplication and ordering)

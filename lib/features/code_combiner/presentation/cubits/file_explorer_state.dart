@@ -1,5 +1,5 @@
-import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
 import 'package:equatable/equatable.dart';
+import 'package:text_merger/features/code_combiner/data/models/file_node.dart';
 
 /// Production-grade sealed states for FileExplorer following decision-driven design
 sealed class FileExplorerState extends Equatable {

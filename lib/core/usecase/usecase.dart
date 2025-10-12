@@ -1,4 +1,4 @@
-import 'package:context_for_ai/core/typedefs/type.dart';
+import 'package:text_merger/core/typedefs/type.dart';
 
 abstract class FutureUseCaseWithParams<T, P> {
   const FutureUseCaseWithParams();

@@ -1,13 +1,13 @@
-import 'package:context_for_ai/core/error/error_mapper.dart' show ErrorMapper;
-import 'package:context_for_ai/core/typedefs/type.dart';
-import 'package:context_for_ai/features/code_combiner/data/datasources/file_system_data_source.dart';
-import 'package:context_for_ai/features/code_combiner/data/datasources/local_storage_data_source.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/app_settings.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/export_preview.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/filter_settings.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/recent_workspace.dart';
-import 'package:context_for_ai/features/code_combiner/domain/repositories/code_combiner_repository.dart';
 import 'package:dartz/dartz.dart';
+import 'package:text_merger/core/error/error_mapper.dart' show ErrorMapper;
+import 'package:text_merger/core/typedefs/type.dart';
+import 'package:text_merger/features/code_combiner/data/datasources/file_system_data_source.dart';
+import 'package:text_merger/features/code_combiner/data/datasources/local_storage_data_source.dart';
+import 'package:text_merger/features/code_combiner/data/models/app_settings.dart';
+import 'package:text_merger/features/code_combiner/data/models/export_preview.dart';
+import 'package:text_merger/features/code_combiner/data/models/filter_settings.dart';
+import 'package:text_merger/features/code_combiner/data/models/recent_workspace.dart';
+import 'package:text_merger/features/code_combiner/domain/repositories/code_combiner_repository.dart';
 
 class CodeCombinerRepositoryImpl implements CodeCombinerRepository {
   CodeCombinerRepositoryImpl({
@@ -95,9 +95,15 @@ class CodeCombinerRepositoryImpl implements CodeCombinerRepository {
   }
 
   @override
-  ResultFuture<ExportPreview> exportFiles(List<String> filePaths) async {
+  ResultFuture<ExportPreview> exportFiles(
+    List<String> filePaths, {
+    String? customSavePath,
+  }) async {
     try {
-      final result = await fileSystemDataSource.combineAndExportFiles(filePaths);
+      final result = await fileSystemDataSource.combineAndExportFiles(
+        filePaths,
+        customSavePath: customSavePath,
+      );
       return Right(result);
     } on Exception catch (e) {
       return Left(ErrorMapper.mapErrorToFailure(e));

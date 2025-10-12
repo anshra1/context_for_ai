@@ -1,5 +1,5 @@
-import 'package:context_for_ai/features/code_combiner/data/models/settings_model.dart';
 import 'package:equatable/equatable.dart';
+import 'package:text_merger/features/code_combiner/data/models/settings_model.dart';
 
 class SettingsState extends Equatable {
   const SettingsState({

@@ -4,9 +4,9 @@ import 'dart:convert';
 import 'dart:ui';
 
 import 'package:bloc/bloc.dart';
-import 'package:context_for_ai/core/theme/cubit/theme_state.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:text_merger/core/theme/cubit/theme_state.dart';
 
 /// Minimal cubit that handles:
 ///   - theme mode (light / dark / system)
@@ -34,8 +34,6 @@ class ThemeCubit extends Cubit<ThemeState> {
     _saveSettingsDebounced();
   }
 
-
-
   /// Toggles between light and dark.
   void toggleThemeMode() =>
       setThemeMode(state.themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark);
@@ -51,16 +49,15 @@ class ThemeCubit extends Cubit<ThemeState> {
 
   /* ---------------- OS brightness listener ---------------- */
 
-void _setupPlatformBrightnessListener() {
-  WidgetsBinding.instance.platformDispatcher.onPlatformBrightnessChanged = () {
-    if (state.themeMode == ThemeMode.system) {
-      final newBrightness = PlatformDispatcher.instance.platformBrightness;
-      emit(state.copyWith(platformBrightness: newBrightness));
-      _saveSettingsDebounced();
-    }
-  };
-}
-
+  void _setupPlatformBrightnessListener() {
+    WidgetsBinding.instance.platformDispatcher.onPlatformBrightnessChanged = () {
+      if (state.themeMode == ThemeMode.system) {
+        final newBrightness = PlatformDispatcher.instance.platformBrightness;
+        emit(state.copyWith(platformBrightness: newBrightness));
+        _saveSettingsDebounced();
+      }
+    };
+  }
 
   /* ---------------- lifecycle ---------------- */
 

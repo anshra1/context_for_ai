@@ -1,7 +1,7 @@
-import 'package:context_for_ai/features/code_combiner/presentation/cubits/file_explorer_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_design_system/tokens/base_token/spacing_tokens.dart';
+import 'package:text_merger/features/code_combiner/presentation/cubits/file_explorer_cubit.dart';
 
 class BottonButtons extends StatelessWidget {
   const BottonButtons({

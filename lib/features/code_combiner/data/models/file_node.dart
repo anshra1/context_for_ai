@@ -1,5 +1,5 @@
-import 'package:context_for_ai/features/code_combiner/data/enum/node_type.dart';
-import 'package:context_for_ai/features/code_combiner/data/enum/selection_state.dart';
+import 'package:text_merger/features/code_combiner/data/enum/node_type.dart';
+import 'package:text_merger/features/code_combiner/data/enum/selection_state.dart';
 
 class FileNode {
   FileNode({

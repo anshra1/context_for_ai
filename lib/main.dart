@@ -1,7 +1,7 @@
-import 'package:context_for_ai/core/di/di.dart';
-import 'package:context_for_ai/root_app.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:text_merger/core/di/di.dart';
+import 'package:text_merger/root_app.dart';
 import 'package:toastification/toastification.dart';
 
 Future<void> main() async {
@@ -19,9 +19,9 @@ Future<void> main() async {
         statusBarIconBrightness: Brightness.dark,
       ),
     );
+    
 
     await init();
-    
 
     runApp(const ToastificationWrapper(child: RootApp()));
   } catch (error, stackTrace) {

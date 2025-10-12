@@ -1,21 +1,24 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:context_for_ai/core/error/exception.dart';
-import 'package:context_for_ai/features/code_combiner/data/enum/node_type.dart';
-import 'package:context_for_ai/features/code_combiner/data/enum/selection_state.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/app_settings.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/export_preview.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
 import 'package:path/path.dart' as path;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:text_merger/core/error/exception.dart';
+import 'package:text_merger/features/code_combiner/data/enum/node_type.dart';
+import 'package:text_merger/features/code_combiner/data/enum/selection_state.dart';
+import 'package:text_merger/features/code_combiner/data/models/app_settings.dart';
+import 'package:text_merger/features/code_combiner/data/models/export_preview.dart';
+import 'package:text_merger/features/code_combiner/data/models/file_node.dart';
 import 'package:uuid/uuid.dart';
 
 abstract class FileSystemDataSource {
   Future<Map<String, FileNode>> scanDirectory(String directoryPath);
 
   Future<String> readFileContent(String filePath);
-  Future<ExportPreview> combineAndExportFiles(List<String> filePaths);
+  Future<ExportPreview> combineAndExportFiles(
+    List<String> filePaths, {
+    String? customSavePath,
+  });
 }
 
 class FileSystemDataSourceImpl implements FileSystemDataSource {
@@ -447,8 +450,12 @@ class FileSystemDataSourceImpl implements FileSystemDataSource {
   /// Method Purpose: Takes a list of file paths, reads all their
   /// contents, combines into one string, splits if too large, and returns
   /// list of created files
+  /// [customSavePath] - Optional custom path for saving. If null, uses default location from settings
   @override
-  Future<ExportPreview> combineAndExportFiles(List<String> filePaths) async {
+  Future<ExportPreview> combineAndExportFiles(
+    List<String> filePaths, {
+    String? customSavePath,
+  }) async {
     final failedFilePaths = <String>[];
     final successfulCombinedFilesPaths = <String>[];
 
@@ -479,10 +486,11 @@ class FileSystemDataSourceImpl implements FileSystemDataSource {
       final contentChunks = _splitContent(combinedContent, appSettings.fileSplitSizeInMB);
       final estimatedPartsCount = contentChunks.length;
 
-      // Step 5: Save split files to defaultExportLocation directory
+      // Step 5: Save split files to custom path or defaultExportLocation directory
+      final exportLocation = customSavePath ?? appSettings.defaultExportLocation;
       final createdFiles = await _saveFiles(
         contentChunks,
-        appSettings.defaultExportLocation,
+        exportLocation,
       );
 
       // Step 6: Return detailed ExportPreview
@@ -898,8 +906,8 @@ class FileSystemDataSourceImpl implements FileSystemDataSource {
 
     for (var i = 0; i < contentChunks.length; i++) {
       final filename = contentChunks.length == 1
-          ? 'combined_export_$timestamp.txt'
-          : 'combined_export_${timestamp}_part${i + 1}.txt';
+          ? 'text_merger_$timestamp.txt'
+          : 'text_merger_${timestamp}_part${i + 1}.txt';
 
       final file = File(path.join(exportDir.path, filename));
       await file.writeAsString(contentChunks[i]);
