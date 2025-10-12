@@ -1,4 +1,6 @@
 import 'package:context_for_ai/core/routes/route_name.dart';
+import 'package:context_for_ai/core/theme/cubit/theme_cubit.dart';
+import 'package:context_for_ai/core/theme/cubit/theme_state.dart';
 import 'package:context_for_ai/features/code_combiner/data/models/recent_workspace.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/cubits/workspace_cubit.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/cubits/workspace_state.dart';
@@ -76,9 +78,9 @@ class _WorkspaceSelectorPageState extends State<WorkspaceSelectorPage> {
 
                       SizedBox(height: spacing.large() * 2),
                       SizedBox(
-                        width: 260,
-                        height: 48,
-                        child: PrimaryButtonWithIcon(
+                        width: 300,
+                        height: 56,
+                        child: ElevatedButton.icon(
                           onPressed: () async {
                             final path = await _pickDirectoryWithSystemDialog();
                             if (path != null) {
@@ -89,8 +91,26 @@ class _WorkspaceSelectorPageState extends State<WorkspaceSelectorPage> {
                               );
                             }
                           },
-                          text: 'Select a Directory',
-                          borderRadius: 8,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 16,
+                            ),
+                          ),
+                          icon: const Icon(Icons.folder_open, size: 24),
+                          label: const Text(
+                            'Select a Directory',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
                       SizedBox(height: spacing.large()),
@@ -113,6 +133,26 @@ class _WorkspaceSelectorPageState extends State<WorkspaceSelectorPage> {
                       ),
                     ],
                   ),
+                ),
+              ),
+              // Theme toggle button in top-right corner
+              Positioned(
+                top: 16,
+                right: 16,
+                child: BlocBuilder<ThemeCubit, ThemeState>(
+                  builder: (context, themeState) {
+                    return FloatingActionButton.small(
+                      onPressed: () => context.read<ThemeCubit>().toggleThemeMode(),
+                      backgroundColor: Theme.of(context).colorScheme.surface,
+                      foregroundColor: Theme.of(context).colorScheme.onSurface,
+                      elevation: 0,
+                      child: Icon(
+                        themeState.themeMode == ThemeMode.dark
+                            ? Icons.light_mode
+                            : Icons.dark_mode,
+                      ),
+                    );
+                  },
                 ),
               ),
               // Full-screen loading overlay

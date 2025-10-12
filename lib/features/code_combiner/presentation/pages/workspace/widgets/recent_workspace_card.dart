@@ -58,7 +58,7 @@ class RecentWorkspaceCard extends StatelessWidget {
           onTap: onOpen,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -144,9 +144,9 @@ class RecentWorkspaceCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                   decoration: BoxDecoration(
                     color: colorScheme.secondaryContainer.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(12),
@@ -157,32 +157,6 @@ class RecentWorkspaceCard extends StatelessWidget {
                       color: colorScheme.onSecondaryContainer,
                       fontWeight: FontWeight.w500,
                     ),
-                  ),
-                ),
-                const Spacer(),
-                SizedBox(
-                  width: double.infinity,
-                  height: 36,
-                  child: FilledButton.icon(
-                    onPressed: onOpen,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: colorScheme.primary,
-                      foregroundColor: colorScheme.onPrimary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    icon: isLoading
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.folder_open, size: 18),
-                    label: const Text('Open'),
                   ),
                 ),
               ],

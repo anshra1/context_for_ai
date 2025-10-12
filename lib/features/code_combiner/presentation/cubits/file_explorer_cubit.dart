@@ -1,6 +1,9 @@
 //
 // ignore_for_file: avoid_positional_boolean_parameters
 
+import 'dart:async';
+import 'dart:io';
+
 import 'package:context_for_ai/features/code_combiner/data/enum/node_type.dart';
 import 'package:context_for_ai/features/code_combiner/data/enum/selection_state.dart';
 import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
@@ -41,34 +44,69 @@ class FileExplorerCubit extends Cubit<FileExplorerState> {
     emit(FileExplorerLoaded(filteredNodes));
   }
 
-  /// Initialize workspace - scan directory and load settings
+  /// Initialize workspace - scan directory and load settings with 20-second timeout
   Future<void> initialize(String workspacePath) async {
     emit(const FileExplorerLoading());
 
-    final result = await useCase.openDirectoryTree(workspacePath);
-    await result.fold(
-      (failure) async => emit(FileExplorerError(failure.message)),
-      (workspaceData) async {
-        // Store complete tree locally (one-time scan per session)
-        _allNodes = workspaceData.fileTree;
+    try {
+      final result = await useCase
+          .openDirectoryTree(workspacePath)
+          .timeout(
+            const Duration(seconds: 20),
+            onTimeout: () {
+              throw TimeoutException(
+                'Folder too large',
+                const Duration(seconds: 20),
+              );
+            },
+          );
 
-        // Now, fetch the saved filter settings to override any defaults
-        final settingsResult = await useCase.getFilterSettings();
-        settingsResult.fold(
-          (settingsFailure) {
-            // If loading settings fails, fall back to the ones from the workspace
-            _currentFilterSettings = workspaceData.filterSettings;
-          },
-          (savedSettings) {
-            _currentFilterSettings = savedSettings;
-          },
-        );
+      await result.fold(
+        (failure) async => emit(FileExplorerError(failure.message)),
+        (workspaceData) async {
+          // Store complete tree locally (one-time scan per session)
+          _allNodes = workspaceData.fileTree;
 
-        // Compute initial filtered nodes and emit
-        final filteredNodes = _computeFilteredNodes();
-        emit(FileExplorerLoaded(filteredNodes));
-      },
-    );
+          // Now, fetch the saved filter settings to override any defaults
+          final settingsResult = await useCase.getFilterSettings();
+          settingsResult.fold(
+            (settingsFailure) {
+              // If loading settings fails, fall back to the ones from the workspace
+              _currentFilterSettings = workspaceData.filterSettings;
+            },
+            (savedSettings) {
+              _currentFilterSettings = savedSettings;
+            },
+          );
+
+          // Compute initial filtered nodes and emit
+          final filteredNodes = _computeFilteredNodes();
+          emit(FileExplorerLoaded(filteredNodes));
+        },
+      );
+    } on TimeoutException {
+      // Handle timeout specifically
+      final fileCount = _countFilesInDirectory(workspacePath);
+      emit(FileExplorerTimeout(fileCount, workspacePath));
+    } catch (e) {
+      emit(FileExplorerError('An unexpected error occurred: $e'));
+    }
+  }
+
+  /// Count files in directory for timeout feedback
+  int _countFilesInDirectory(String directoryPath) {
+    try {
+      final directory = Directory(directoryPath);
+      if (!directory.existsSync()) return 0;
+
+      var count = 0;
+      directory.listSync(recursive: true).forEach((entity) {
+        if (entity is File) count++;
+      });
+      return count;
+    } catch (e) {
+      return 0;
+    }
   }
 
   // ==================== SELECTION MANAGEMENT ====================
@@ -250,7 +288,11 @@ class FileExplorerCubit extends Cubit<FileExplorerState> {
 
   /// Updates the set of blocked file extensions.
   void updateBlockedExtensions(String extensions) {
-    final newSet = extensions.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
+    final newSet = extensions
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet();
     _currentFilterSettings = _currentFilterSettings.copyWith(blockedExtensions: newSet);
     useCase.saveFilterSettings(_currentFilterSettings);
     final filteredNodes = _computeFilteredNodes();
@@ -375,8 +417,7 @@ class FileExplorerCubit extends Cubit<FileExplorerState> {
           });
         },
       );
-    } on Exception
-     catch (e) {
+    } on Exception catch (e) {
       emit(FileExplorerError('Failed to update filters: $e'));
     }
   }

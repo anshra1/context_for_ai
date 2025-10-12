@@ -1,5 +1,5 @@
-import 'package:equatable/equatable.dart';
 import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
+import 'package:equatable/equatable.dart';
 
 /// Production-grade sealed states for FileExplorer following decision-driven design
 sealed class FileExplorerState extends Equatable {
@@ -62,4 +62,15 @@ class FileExplorerError extends FileExplorerState {
 
   @override
   List<Object> get props => [message];
+}
+
+/// Timeout state - folder too large, show notification and return to workspace
+class FileExplorerTimeout extends FileExplorerState {
+  const FileExplorerTimeout(this.fileCount, this.folderPath);
+
+  final int fileCount;
+  final String folderPath;
+
+  @override
+  List<Object> get props => [fileCount, folderPath];
 }

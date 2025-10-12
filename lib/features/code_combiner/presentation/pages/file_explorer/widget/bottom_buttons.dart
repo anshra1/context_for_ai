@@ -16,26 +16,10 @@ class BottonButtons extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        OutlinedButton.icon(
-          onPressed: () {
-            // TODO: Show preview UI
-          },
-          icon: const Icon(Icons.visibility_outlined),
-          label: const Text('Preview'),
-        ),
-        SizedBox(width: spacing.large(context)),
-        ElevatedButton.icon(
-          onPressed: () {
-            // TODO: Copy to clipboard
-          },
-          icon: const Icon(Icons.copy_all_outlined),
-          label: const Text('Copy to Clipboard'),
-        ),
-        SizedBox(width: spacing.large(context)),
         ElevatedButton.icon(
           onPressed: () => context.read<FileExplorerCubit>().exportSelectedFiles(),
           icon: const Icon(Icons.save_alt_outlined),
-          label: const Text('Save as .txt'),
+          label: const Text('Save As'),
         ),
       ],
     );

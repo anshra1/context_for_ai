@@ -67,12 +67,15 @@ class _SettingsView extends StatelessWidget {
                             label: 'Exclude files with these extensions',
                             value: filterSettings.blockedExtensions.join(', '),
                             onChanged: fileExplorerCubit.updateBlockedExtensions,
+                            hintText: 'e.g., .exe, .dll, .png, .jpg (comma-separated)',
                           ),
                           SizedBox(height: md.space.large(context)),
                           _SettingsTextFieldRow(
                             label: 'Exclude folders or files by name',
                             value: blockedFoldersAndFiles,
                             onChanged: fileExplorerCubit.updateBlockedFoldersAndFiles,
+                            hintText:
+                                'e.g., node_modules, .git, package-lock.json (comma-separated)',
                           ),
                           SizedBox(height: md.space.large(context)),
                           _SettingsToggleRow(
@@ -257,12 +260,14 @@ class _SettingsTextFieldRow extends StatefulWidget {
     required this.value,
     required this.onChanged,
     this.isNumeric = false,
+    this.hintText,
   });
 
   final String label;
   final String value;
   final ValueChanged<String> onChanged;
   final bool isNumeric;
+  final String? hintText;
 
   @override
   State<_SettingsTextFieldRow> createState() => _SettingsTextFieldRowState();
@@ -323,6 +328,12 @@ class _SettingsTextFieldRowState extends State<_SettingsTextFieldRow> {
               borderRadius: md.sha.borderRadiusSmall,
               borderSide: BorderSide.none,
             ),
+            hintText: widget.hintText,
+            hintStyle: md.typ
+                .getBodyMedium(context)
+                .copyWith(
+                  color: md.sys.onSurfaceVariant.withOpacity(0.6),
+                ),
             contentPadding: EdgeInsets.symmetric(
               horizontal: md.space.medium(context),
               vertical: md.space.small(context),
