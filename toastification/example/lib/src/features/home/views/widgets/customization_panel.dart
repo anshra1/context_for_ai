@@ -33,9 +33,7 @@ class CustomizationPanel extends ConsumerWidget {
           TopBorderHolder(
             child: ToastTypeTabBar(
               onTypeChanged: (value) {
-                ref
-                    .read(toastDetailControllerProvider.notifier)
-                    .changeType(value);
+                ref.read(toastDetailControllerProvider.notifier).changeType(value);
               },
             ),
           ),
@@ -44,9 +42,7 @@ class CustomizationPanel extends ConsumerWidget {
               type: ref.watch(toastDetailControllerProvider).type,
               initialStyle: ToastificationStyle.flat,
               onStyleChanged: (style) {
-                ref
-                    .read(toastDetailControllerProvider.notifier)
-                    .changeStyle(style);
+                ref.read(toastDetailControllerProvider.notifier).changeStyle(style);
               },
             ),
           ),
@@ -63,6 +59,7 @@ class CustomizationPanel extends ConsumerWidget {
                 toastification.showDesktopNotification(
                   title: 'New Message',
                   description: 'You have a new message from John Doe.',
+                  type: ToastificationType.info,
                 );
               },
               child: const Text('Show Desktop Notification'),
@@ -268,9 +265,7 @@ class _AlignmentSection extends ConsumerWidget {
       body: AlignmentPicker(
         selectedAlignment: ref.watch(toastDetailControllerProvider).alignment,
         onChanged: (alignment) {
-          ref
-              .read(toastDetailControllerProvider.notifier)
-              .changeAlignment(alignment);
+          ref.read(toastDetailControllerProvider.notifier).changeAlignment(alignment);
         },
       ),
     );
@@ -311,9 +306,7 @@ class _ElevationSection extends ConsumerWidget {
         body: ShadowPicker(
           selectedShadow: ref.watch(toastDetailControllerProvider).shadow,
           onChanged: (shadow) {
-            ref
-                .read(toastDetailControllerProvider.notifier)
-                .changeShadow(shadow);
+            ref.read(toastDetailControllerProvider.notifier).changeShadow(shadow);
           },
         ),
       ),
@@ -351,14 +344,14 @@ class _StyleSection extends ConsumerWidget {
       flutterTheme: Theme.of(context),
     );
 
-    Color primaryColor = ref.watch(toastDetailControllerProvider
-            .select((value) => value.primaryColor)) ??
-        builtInStyle.primaryColor;
-    Color backgroundColor = ref.watch(toastDetailControllerProvider
-            .select((value) => value.backgroundColor)) ??
+    Color primaryColor =
+        ref.watch(toastDetailControllerProvider.select((value) => value.primaryColor)) ??
+            builtInStyle.primaryColor;
+    Color backgroundColor = ref.watch(
+            toastDetailControllerProvider.select((value) => value.backgroundColor)) ??
         builtInStyle.backgroundColor;
-    Color foregroundColor = ref.watch(toastDetailControllerProvider
-            .select((value) => value.foregroundColor)) ??
+    Color foregroundColor = ref.watch(
+            toastDetailControllerProvider.select((value) => value.foregroundColor)) ??
         builtInStyle.foregroundColor;
 
     return SubSection(
@@ -384,9 +377,7 @@ class _StyleSection extends ConsumerWidget {
                   title: 'Primary',
                   selectedColor: primaryColor,
                   onChanged: (value) {
-                    ref
-                        .read(toastDetailControllerProvider.notifier)
-                        .changePrimary(value);
+                    ref.read(toastDetailControllerProvider.notifier).changePrimary(value);
                   },
                 ),
               ),
@@ -448,23 +439,21 @@ class _ResetButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final primaryColor = ref.watch(
-        toastDetailControllerProvider.select((value) => value.primaryColor));
-    final backgroundColor = ref.watch(
-        toastDetailControllerProvider.select((value) => value.backgroundColor));
-    final foregroundColor = ref.watch(
-        toastDetailControllerProvider.select((value) => value.foregroundColor));
-    final isThereAnyColorSelected = primaryColor != null ||
-        backgroundColor != null ||
-        foregroundColor != null;
+    final primaryColor =
+        ref.watch(toastDetailControllerProvider.select((value) => value.primaryColor));
+    final backgroundColor =
+        ref.watch(toastDetailControllerProvider.select((value) => value.backgroundColor));
+    final foregroundColor =
+        ref.watch(toastDetailControllerProvider.select((value) => value.foregroundColor));
+    final isThereAnyColorSelected =
+        primaryColor != null || backgroundColor != null || foregroundColor != null;
 
     return AnimatedCrossFade(
       duration: const Duration(milliseconds: 400),
       reverseDuration: const Duration(milliseconds: 400),
       alignment: Alignment.centerRight,
-      crossFadeState: isThereAnyColorSelected
-          ? CrossFadeState.showFirst
-          : CrossFadeState.showSecond,
+      crossFadeState:
+          isThereAnyColorSelected ? CrossFadeState.showFirst : CrossFadeState.showSecond,
       firstChild: OutlinedButton.icon(
         key: const ValueKey('reset'),
         style: OutlinedButton.styleFrom(
@@ -512,9 +501,7 @@ class _SystemSection extends ConsumerWidget {
               title: 'Use BuildContext - Recommended',
               value: ref.watch(toastDetailControllerProvider).useContext,
               onChanged: (value) {
-                ref
-                    .read(toastDetailControllerProvider.notifier)
-                    .changeUseContext(value!);
+                ref.read(toastDetailControllerProvider.notifier).changeUseContext(value!);
               },
             ),
           ),
@@ -541,9 +528,7 @@ class _SystemSection extends ConsumerWidget {
                               color: isSelected
                                   ? theme.colorScheme.onSurface
                                   : theme.colorScheme.onPrimaryContainer,
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                             ),
                           ),
                         ),
@@ -632,9 +617,7 @@ class _CloseSection extends ConsumerWidget {
                               color: isSelected
                                   ? theme.colorScheme.onSurface
                                   : theme.colorScheme.onPrimaryContainer,
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                             ),
                           ),
                         ),
@@ -651,8 +634,7 @@ class _CloseSection extends ConsumerWidget {
               onChanged: (closeType) {
                 ref
                     .read(toastDetailControllerProvider.notifier)
-                    .changeCloseButton(
-                        closeButton.copyWith(showType: closeType));
+                    .changeCloseButton(closeButton.copyWith(showType: closeType));
               },
             ),
           ),
@@ -668,12 +650,10 @@ class _ProgressBarSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     var theme = Theme.of(context);
-    var timeoutValue = (ref
-                .watch(toastDetailControllerProvider)
-                .autoCloseDuration
-                ?.inMilliseconds ??
-            0) /
-        1000;
+    var timeoutValue =
+        (ref.watch(toastDetailControllerProvider).autoCloseDuration?.inMilliseconds ??
+                0) /
+            1000;
 
     return SubSection(
       title: 'PROGRESS BAR',
@@ -712,10 +692,8 @@ class _ProgressBarSection extends ConsumerWidget {
               value: timeoutValue,
               valueSuffix: 's',
               onChanged: (value) {
-                ref
-                    .read(toastDetailControllerProvider.notifier)
-                    .changeAutoCloseDuration(
-                        Duration(milliseconds: (value * 1000).toInt()));
+                ref.read(toastDetailControllerProvider.notifier).changeAutoCloseDuration(
+                    Duration(milliseconds: (value * 1000).toInt()));
               },
             ),
           ),
@@ -736,9 +714,7 @@ class _PauseSection extends ConsumerWidget {
         title: 'Pause on hover',
         value: ref.watch(toastDetailControllerProvider).pauseOnHover,
         onChanged: (value) {
-          ref
-              .read(toastDetailControllerProvider.notifier)
-              .changePauseOnHover(value!);
+          ref.read(toastDetailControllerProvider.notifier).changePauseOnHover(value!);
         },
       ),
     );
@@ -756,9 +732,7 @@ class _DragSection extends ConsumerWidget {
         title: 'Drag to close',
         value: ref.watch(toastDetailControllerProvider).dragToClose,
         onChanged: (value) {
-          ref
-              .read(toastDetailControllerProvider.notifier)
-              .changeDragToClose(value!);
+          ref.read(toastDetailControllerProvider.notifier).changeDragToClose(value!);
         },
       ),
     );

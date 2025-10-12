@@ -1,6 +1,6 @@
 import 'package:context_for_ai/features/code_combiner/data/datasources/file_system_data_source.dart';
-import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
 import 'package:context_for_ai/features/code_combiner/data/enum/node_type.dart';
+import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 
@@ -60,7 +60,9 @@ class DirectoryScannerPageState extends State<DirectoryScannerPage> {
 
         for (final node in nodes.values) {
           if (node.type == NodeType.folder) {
-            _expandedNodes[node.id] = node.parentId == null; // Only root expanded// Only root expanded/ Only root expanded
+            _expandedNodes[node.id] =
+                node.parentId ==
+                null; // Only root expanded// Only root expanded/ Only root expanded
           }
         }
       });

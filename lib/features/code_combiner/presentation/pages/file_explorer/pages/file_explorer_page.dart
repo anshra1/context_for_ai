@@ -1,6 +1,7 @@
 import 'package:context_for_ai/core/routes/route_name.dart';
 import 'package:context_for_ai/features/code_combiner/data/enum/node_type.dart';
 import 'package:context_for_ai/features/code_combiner/data/models/file_node.dart';
+import 'package:context_for_ai/features/code_combiner/domain/repositories/code_combiner_repository.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/cubits/file_explorer_cubit.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/cubits/file_explorer_state.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/pages/file_explorer/view/file_tree_view.dart';
@@ -10,8 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_design_system/material_design_system.dart';
-
-import 'package:context_for_ai/features/code_combiner/domain/repositories/code_combiner_repository.dart';
+import 'package:toastification/toastification.dart';
 
 class FileExplorerPage extends StatefulWidget {
   const FileExplorerPage({required this.workspaceData, super.key});
@@ -37,8 +37,9 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = MdTheme.of(context);
-    final spacing = SpacingTokens();
+    final spacing = MdTheme.of(context).space;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {});
 
     return BlocBuilder<FileExplorerCubit, FileExplorerState>(
       builder: (context, state) {
@@ -52,7 +53,12 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('File Export'),
+            title: GestureDetector(
+              onTap: () {
+               
+              },
+              child: const Text('File Export'),
+            ),
             centerTitle: false,
             actions: [
               IconButton(

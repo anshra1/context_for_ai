@@ -7,6 +7,7 @@ class FilePathTile extends StatelessWidget {
     this.isLoading = false,
     super.key,
   });
+  
   final String filePath;
   final VoidCallback onTap;
   final bool isLoading;

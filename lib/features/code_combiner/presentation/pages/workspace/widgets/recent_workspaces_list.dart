@@ -1,4 +1,4 @@
-import 'package:context_for_ai/features/code_combiner/presentation/pages/workspace_selector/widgets/file_path.dart';
+import 'package:context_for_ai/features/code_combiner/presentation/pages/workspace/widgets/recent_workspace_file_path.dart';
 import 'package:flutter/material.dart';
 
 class RecentWorkspacesList extends StatelessWidget {

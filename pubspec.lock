@@ -1007,11 +1007,9 @@ packages:
   toastification:
     dependency: "direct main"
     description:
-      path: "."
-      ref: master
-      resolved-ref: dceb02b9a095fdb7682c305cc5bb37f7e6cd50b7
-      url: "https://github.com/anshra1/toastification.git"
-    source: git
+      path: "/home/ansh/Studio Projects/Clone/context_for_ai/toastification"
+      relative: false
+    source: path
     version: "3.0.3"
   typed_data:
     dependency: transitive

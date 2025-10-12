@@ -147,6 +147,7 @@ class Toastification {
   @visibleForTesting
   final Map<Alignment, ToastificationManager> managers = {};
 
+
   /// shows a custom notification
   ///
   /// you should create your own widget and pass it to the [builder] parameter
@@ -234,51 +235,7 @@ class Toastification {
     );
   }
 
-  @Deprecated(
-      'use show or showCustom method instead, and you can pass the OverlayState as a parameter')
 
-  /// using this method you can show a notification by using the [navigator] overlay
-  /// you should create your own widget and pass it to the [builder] parameter
-  ///
-  ///
-  /// the return value is a [ToastificationItem] that you can use to dismiss the notification
-  /// or find the notification details by its [id]
-  ///
-  /// ```dart
-  /// toastification.showWithNavigatorState(
-  ///   navigator: navigatorState or Navigator.of(context),
-  ///   alignment: Alignment.topRight,
-  ///   animationDuration: Duration(milliseconds: 500),
-  ///   autoCloseDuration: Duration(seconds: 3),
-  ///   builder: (context, item) {
-  ///     return CustomToastWidget();
-  ///   },
-  /// );
-  /// ```
-  ToastificationItem showWithNavigatorState({
-    required NavigatorState navigator,
-    required ToastificationBuilder builder,
-    AlignmentGeometry? alignment,
-    TextDirection? textDirection,
-    ToastificationAnimationBuilder? animationBuilder,
-    Duration? animationDuration,
-    Duration? autoCloseDuration,
-    ToastificationCallbacks callbacks = const ToastificationCallbacks(),
-  }) {
-    final context = navigator.context;
-
-    return showCustom(
-      context: context,
-      alignment: alignment,
-      direction: textDirection,
-      builder: builder,
-      animationBuilder: animationBuilder,
-      animationDuration: animationDuration,
-      autoCloseDuration: autoCloseDuration,
-      overlayState: navigator.overlay,
-      callbacks: callbacks,
-    );
-  }
 
   /// shows a predefined toast widget base on the parameters
   ///
@@ -394,52 +351,47 @@ class Toastification {
 
   ToastificationItem showDesktopNotification({
     BuildContext? context,
-    String? title,
-    String? description,
-    Widget? icon,
-    DesktopToastStyle? style,
+    required String title,
+    required String description,
+    required ToastificationType type,
     AlignmentGeometry? alignment,
     Duration? autoCloseDuration,
-    Color? backgroundColor,
-    BorderRadiusGeometry? borderRadius,
-    Color? borderColor,
-    double? borderWidth,
-    List<BoxShadow>? boxShadow,
-    TextStyle? titleTextStyle,
-    TextStyle? descriptionTextStyle,
     bool? showProgressBar,
     bool? pauseOnHover,
     bool? showCloseButtonOnHover,
+    EdgeInsetsGeometry? margin,
     ToastificationCallbacks callbacks = const ToastificationCallbacks(),
     // ... other customization options
   }) {
-    final desktopConfig = context != null ? ToastificationConfigProvider.maybeOf(context)?.config.desktopConfig : null;
+    final desktopConfig = context != null
+        ? ToastificationConfigProvider.maybeOf(context)?.config.desktopConfig
+        : null;
 
     return showCustom(
       context: context,
       alignment: alignment ?? Alignment.topRight,
-      autoCloseDuration: autoCloseDuration ?? desktopConfig?.autoCloseDuration ?? const Duration(seconds: 5),
+      autoCloseDuration: autoCloseDuration ??
+          desktopConfig?.autoCloseDuration ??
+          const Duration(seconds: 5),
       callbacks: callbacks,
+      config: ToastificationConfig(
+        margin: margin ?? const EdgeInsets.all(16.0),
+        itemWidth: 363,
+      ),
       builder: (context, item) {
         return DesktopToastWidget(
-          title: title ?? 'Title',
-          description: description ?? 'Description',
-          style: style,
-          icon: icon,
-          backgroundColor: backgroundColor ?? desktopConfig?.backgroundColor,
-          borderRadius: borderRadius ?? desktopConfig?.borderRadius,
-          borderColor: borderColor ?? desktopConfig?.borderColor,
-          borderWidth: borderWidth ?? desktopConfig?.borderWidth,
-          boxShadow: boxShadow ?? desktopConfig?.boxShadow,
-          titleTextStyle: titleTextStyle ?? desktopConfig?.titleTextStyle,
-          descriptionTextStyle: descriptionTextStyle ?? desktopConfig?.descriptionTextStyle,
+          title: title,
+          description: description,
+          type: type,
           onClose: () {
             dismiss(item);
           },
-          showProgressBar: showProgressBar ?? desktopConfig?.showProgressBar,
+          showProgressBar:
+              showProgressBar ?? desktopConfig?.showProgressBar ?? true,
           item: item,
-          pauseOnHover: pauseOnHover ?? desktopConfig?.pauseOnHover,
-          showCloseButtonOnHover: showCloseButtonOnHover ?? desktopConfig?.showCloseButtonOnHover,
+          pauseOnHover: pauseOnHover ?? desktopConfig?.pauseOnHover ?? true,
+          showCloseButtonOnHover:
+              showCloseButtonOnHover ?? desktopConfig?.showCloseButtonOnHover ?? false,
         );
       },
     );

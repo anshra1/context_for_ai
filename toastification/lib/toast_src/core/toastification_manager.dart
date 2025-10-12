@@ -80,6 +80,7 @@ class ToastificationManager {
     if (notifications.contains(item)) return;
 
     notifications.insert(0, item);
+
     listGlobalKey.currentState?.insertItem(
       0,
       duration: _createAnimationDuration(item),
@@ -211,42 +212,50 @@ class ToastificationManager {
     return OverlayEntry(
       opaque: false,
       builder: (context) {
-        Widget overlay = Align(
-          alignment: alignment,
-          child: Container(
-            margin: _marginBuilder(context, alignment, config),
-            constraints: BoxConstraints.tightFor(
-              width: config.itemWidth,
-            ),
-            child: MediaQuery.removePadding(
-              context: context,
-              removeTop: true,
-              removeBottom: true,
-              child: AnimatedList(
-                key: listGlobalKey,
-                clipBehavior: config.clipBehavior,
-                initialItemCount: notifications.length,
-                reverse: alignment.y >= 0,
-                primary: true,
-                shrinkWrap: true,
-                itemBuilder: (
-                  BuildContext context,
-                  int index,
-                  Animation<double> animation,
-                ) {
-                  final item = notifications[index];
+        final animatedList = MediaQuery.removePadding(
+          context: context,
+          removeTop: true,
+          removeBottom: true,
+          child: AnimatedList(
+            key: listGlobalKey,
+            clipBehavior: config.clipBehavior,
+            initialItemCount: notifications.length,
+            reverse: alignment.y >= 0,
+            primary: true,
+            shrinkWrap: true,
+            itemBuilder: (
+              BuildContext context,
+              int index,
+              Animation<double> animation,
+            ) {
+              final item = notifications[index];
 
-                  return ToastHolderWidget(
-                    item: item,
-                    animation: animation,
-                    alignment: alignment,
-                    transformerBuilder: _toastAnimationBuilder(item),
-                  );
-                },
-              ),
-            ),
+              return ToastHolderWidget(
+                item: item,
+                animation: animation,
+                alignment: alignment,
+                transformerBuilder: _toastAnimationBuilder(item),
+              );
+            },
           ),
         );
+
+        Widget overlay;
+
+        if (config.itemWidth == null) {
+          overlay = animatedList;
+        } else {
+          overlay = Align(
+            alignment: alignment,
+            child: Container(
+              margin: _marginBuilder(context, alignment, config),
+              constraints: BoxConstraints.tightFor(
+                width: config.itemWidth,
+              ),
+              child: animatedList,
+            ),
+          );
+        }
 
         if (config.blockBackgroundInteraction) {
           return GestureDetector(

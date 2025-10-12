@@ -1,43 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:toastification/toastification.dart';
 
+/// A Flutter widget that displays a notification card with a modern UI,
+/// inspired by the provided HTML/CSS design.
 class DesktopToastWidget extends StatefulWidget {
   const DesktopToastWidget({
     super.key,
     required this.title,
     required this.description,
-    this.style,
-    this.icon,
-    this.backgroundColor,
-    this.borderRadius,
-    this.borderColor,
-    this.borderWidth,
-    this.boxShadow,
-    this.titleTextStyle,
-    this.descriptionTextStyle,
+    required this.type,
+    this.time,
     this.onClose,
-    this.showProgressBar,
     this.item,
-    this.pauseOnHover,
-    this.showCloseButtonOnHover,
+    this.pauseOnHover = true,
+    this.showProgressBar = false,
+    this.showCloseButtonOnHover = false,
   });
 
   final String title;
   final String description;
-  final DesktopToastStyle? style;
-  final Widget? icon;
-  final Color? backgroundColor;
-  final BorderRadiusGeometry? borderRadius;
-  final Color? borderColor;
-  final double? borderWidth;
-  final List<BoxShadow>? boxShadow;
-  final TextStyle? titleTextStyle;
-  final TextStyle? descriptionTextStyle;
+  final String? time;
+  final ToastificationType type;
   final VoidCallback? onClose;
-  final bool? showProgressBar;
   final ToastificationItem? item;
-  final bool? pauseOnHover;
-  final bool? showCloseButtonOnHover;
+  final bool pauseOnHover;
+  final bool showProgressBar;
+  final bool showCloseButtonOnHover;
 
   @override
   State<DesktopToastWidget> createState() => _DesktopToastWidgetState();
@@ -49,161 +37,160 @@ class _DesktopToastWidgetState extends State<DesktopToastWidget> {
   @override
   void initState() {
     super.initState();
-    if (widget.showCloseButtonOnHover == false) {
+    // If the close button shouldn't be hidden on hover, make it always visible.
+    if (!widget.showCloseButtonOnHover) {
       _closeButtonVisible.value = true;
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    final effectiveStyle = _getStyle(context);
+  void dispose() {
+    _closeButtonVisible.dispose();
+    super.dispose();
+  }
 
-    final showProgressBar = widget.showProgressBar ?? false;
-    final pauseOnHover = widget.pauseOnHover ?? false;
-    final showCloseButtonOnHover = widget.showCloseButtonOnHover ?? false;
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    final effectiveStyle = _getStyle(context);
 
     return MouseRegion(
       onEnter: (event) {
-        if (pauseOnHover) {
+        if (widget.pauseOnHover) {
           widget.item?.pause();
         }
-        if (showCloseButtonOnHover) {
+        if (widget.showCloseButtonOnHover) {
           _closeButtonVisible.value = true;
         }
       },
       onExit: (event) {
-        if (pauseOnHover) {
+        if (widget.pauseOnHover) {
           widget.item?.start();
         }
-        if (showCloseButtonOnHover) {
+        if (widget.showCloseButtonOnHover) {
           _closeButtonVisible.value = false;
         }
       },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 350,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: widget.backgroundColor ?? effectiveStyle.backgroundColor,
-              borderRadius: widget.borderRadius ?? BorderRadius.circular(8),
-              border: Border.all(
-                color: widget.borderColor ?? effectiveStyle.borderColor!,
-                width: widget.borderWidth ?? 1,
-              ),
-              boxShadow: widget.boxShadow ??
-                  [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(25),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-            ),
-            child: Row(
-              children: [
-                if (widget.icon != null || effectiveStyle.icon != null) ...[
-                  widget.icon ?? effectiveStyle.icon!,
-                  const SizedBox(width: 16),
-                ],
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.title,
-                        style: widget.titleTextStyle ??
-                            const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        widget.description,
-                        style: widget.descriptionTextStyle ??
-                            const TextStyle(
-                              fontSize: 14,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-                ValueListenableBuilder<bool>(
-                  valueListenable: _closeButtonVisible,
-                  builder: (context, value, child) {
-                    return value
-                        ? IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: widget.onClose,
-                          )
-                        : const SizedBox.shrink();
-                  },
-                ),
-              ],
+      child: Container(
+     
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(12),
+          // This creates the colored left border.
+          border: Border(
+            left: BorderSide(
+              color: effectiveStyle.borderColor,
+              width: 4,
             ),
           ),
-          if (showProgressBar)
-            ToastTimerAnimationBuilder(
-              item: widget.item!,
-              builder: (context, value, child) {
-                return LinearProgressIndicator(value: value);
-              },
+          boxShadow: [
+            BoxShadow(
+              color: theme.shadowColor.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-        ],
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Icon
+                  Icon(
+                    effectiveStyle.icon,
+                    color: effectiveStyle.borderColor,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  // Content (Title, Description, Time)
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.title,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.description,
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                        if (widget.time != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            widget.time!,
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Close Button
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _closeButtonVisible,
+                    builder: (context, value, child) {
+                      return value
+                          ? InkWell(
+                              onTap: widget.onClose,
+                              borderRadius: BorderRadius.circular(20),
+                              child: Icon(
+                                Icons.close,
+                                size: 20,
+                                color: theme.iconTheme.color?.withOpacity(0.6),
+                              ),
+                            )
+                          : const SizedBox(width: 20, height: 20);
+                    },
+                  ),
+                ],
+              ),
+            ),
+            if (widget.showProgressBar && widget.item != null)
+              ToastTimerAnimationBuilder(
+                item: widget.item!,
+                builder: (context, value, child) {
+                  return LinearProgressIndicator(
+                    value: value,
+                    backgroundColor: theme.colorScheme.surfaceVariant,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                        effectiveStyle.borderColor),
+                    minHeight: 3,
+                  );
+                },
+              ),
+          ],
+        ),
       ),
     );
   }
 
-  _DesktopToastStyle _getStyle(BuildContext context) {
-    final desktopConfig = ToastificationConfigProvider.maybeOf(context)?.config.desktopConfig;
-
-    switch (widget.style) {
-      case DesktopToastStyle.info:
-        return _DesktopToastStyle(
-          icon: const Icon(Icons.info, color: Colors.blue),
-          backgroundColor: desktopConfig?.infoColor ?? Colors.blue.shade100,
-          borderColor: (desktopConfig?.infoColor ?? Colors.blue).withAlpha(128),
-        );
-      case DesktopToastStyle.success:
-        return _DesktopToastStyle(
-          icon: const Icon(Icons.check_circle, color: Colors.green),
-          backgroundColor: desktopConfig?.successColor ?? Colors.green.shade100,
-          borderColor:
-              (desktopConfig?.successColor ?? Colors.green).withAlpha(128),
-        );
-      case DesktopToastStyle.warning:
-        return _DesktopToastStyle(
-          icon: const Icon(Icons.warning, color: Colors.orange),
-          backgroundColor: desktopConfig?.warningColor ?? Colors.orange.shade100,
-          borderColor:
-              (desktopConfig?.warningColor ?? Colors.orange).withAlpha(128),
-        );
-      case DesktopToastStyle.error:
-        return _DesktopToastStyle(
-          icon: const Icon(Icons.error, color: Colors.red),
-          backgroundColor: desktopConfig?.errorColor ?? Colors.red.shade100,
-          borderColor: (desktopConfig?.errorColor ?? Colors.red).withAlpha(128),
-        );
-      default:
-        return _DesktopToastStyle(
-          icon: widget.icon,
-          backgroundColor: widget.backgroundColor ?? Colors.white,
-          borderColor: widget.borderColor ?? Colors.transparent,
-        );
-    }
+  /// Determines the icon and color based on the notification style.
+  _NotificationStyle _getStyle(BuildContext context) {
+    return _NotificationStyle(
+      icon: widget.type.icon,
+      borderColor: widget.type.color,
+    );
   }
 }
 
-class _DesktopToastStyle {
-  _DesktopToastStyle({
-    this.icon,
-    this.backgroundColor,
-    this.borderColor,
+
+/// A helper class to hold style properties for the notification card.
+class _NotificationStyle {
+  _NotificationStyle({
+    required this.icon,
+    required this.borderColor,
   });
 
-  final Widget? icon;
-  final Color? backgroundColor;
-  final Color? borderColor;
+  final IconData icon;
+  final Color borderColor;
 }

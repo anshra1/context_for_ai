@@ -1,7 +1,7 @@
 import 'package:context_for_ai/core/pages/page_not_found.dart';
 import 'package:context_for_ai/core/routes/route_name.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/pages/file_explorer/pages/file_explorer_page.dart';
-import 'package:context_for_ai/features/code_combiner/presentation/pages/workspace_selector/pages/workspace_selector_page.dart';
+import 'package:context_for_ai/features/code_combiner/presentation/pages/workspace/pages/workspace_page.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/pages/settings/pages/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
