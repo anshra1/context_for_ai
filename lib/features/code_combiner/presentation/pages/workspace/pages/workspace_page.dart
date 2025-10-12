@@ -1,6 +1,7 @@
 import 'package:context_for_ai/core/routes/route_name.dart';
-import 'package:context_for_ai/features/code_combiner/presentation/cubits/workspace_state.dart';
+import 'package:context_for_ai/features/code_combiner/data/models/recent_workspace.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/cubits/workspace_cubit.dart';
+import 'package:context_for_ai/features/code_combiner/presentation/cubits/workspace_state.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/pages/workspace/widgets/drag_and_drop_area.dart';
 import 'package:context_for_ai/features/code_combiner/presentation/pages/workspace/widgets/recent_workspaces_list.dart';
 import 'package:file_picker/file_picker.dart';
@@ -49,71 +50,97 @@ class _WorkspaceSelectorPageState extends State<WorkspaceSelectorPage> {
       },
       builder: (context, state) {
         final isLoading = state is WorkspaceLoading;
-        final recentPaths = state is WorkspaceLoaded
-            ? state.workspaces.map((w) => w.path).toList()
-            : <String>[];
+        // Preserve workspaces during loading to prevent UI flicker
+        final workspaces = state is WorkspaceStateWithWorkspaces
+            ? state.workspaces
+            : <RecentWorkspace>[];
 
         return Scaffold(
-          body: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              children: [
-                if (isLoading) const LinearProgressIndicator(minHeight: 2),
-                if (isLoading) SizedBox(height: spacing.large(context)),
-                SizedBox(height: spacing.small(context)),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: WorkspaceHeader(
-                    title: 'WorkSpace Screen',
-                    textStyle: md.typ
-                        .getHeadlineMedium(context)
-                        .copyWith(fontWeight: FontWeight.bold),
+          body: Stack(
+            children: [
+              SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Column(
+                    children: [
+                      SizedBox(height: spacing.small(context)),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: WorkspaceHeader(
+                          title: 'WorkSpace Screen',
+                          textStyle: md.typ
+                              .getHeadlineMedium(context)
+                              .copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+
+                      SizedBox(height: spacing.large() * 2),
+                      SizedBox(
+                        width: 260,
+                        height: 48,
+                        child: PrimaryButtonWithIcon(
+                          onPressed: () async {
+                            final path = await _pickDirectoryWithSystemDialog();
+                            if (path != null) {
+                              if (!context.mounted) return;
+                              await context.pushNamed(
+                                RoutesName.fileExplorer,
+                                extra: path,
+                              );
+                            }
+                          },
+                          text: 'Select a Directory',
+                          borderRadius: 8,
+                        ),
+                      ),
+                      SizedBox(height: spacing.large()),
+
+                      const FolderDropCopyPath(),
+
+                      SizedBox(height: spacing.large(context)),
+
+                      RecentWorkspacesList(
+                        workspaces: workspaces,
+                        onOpen: (path) {
+                          context.read<WorkspaceCubit>().openDirectoryTree(path);
+                        },
+                        onToggleFavorite: (path) {
+                          context.read<WorkspaceCubit>().toggleWorkspaceFavorite(path);
+                        },
+                        onRemove: (path) {
+                          context.read<WorkspaceCubit>().removeRecentWorkspace(path);
+                        },
+                      ),
+                    ],
                   ),
                 ),
-
-                SizedBox(height: spacing.large() * 2),
-                SizedBox(
-                  width: 260,
-                  height: 48,
-                  child: PrimaryButtonWithIcon(
-                    onPressed: () async {
-                      final path = await _pickDirectoryWithSystemDialog();
-                      if (path != null) {
-                        if (!context.mounted) return;
-                        await context.pushNamed(RoutesName.fileExplorer, extra: path);
-                      }
-                    },
-                    text: 'Select a Directory',
-                    borderRadius: 8,
+              ),
+              // Full-screen loading overlay
+              if (isLoading)
+                ColoredBox(
+                  color: Colors.black.withOpacity(0.5),
+                  child: const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 3,
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'Opening workspace...',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                SizedBox(height: spacing.large()),
-
-                const FolderDropCopyPath(),
-
-                SizedBox(height: spacing.large(context)),
-
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: WorkspaceHeader(
-                    title: 'Recent Workspaces',
-                    textStyle: md.typ
-                        .getTitleLarge(context)
-                        .copyWith(fontWeight: FontWeight.w600),
-                  ),
-                ),
-                const Divider(height: 24),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: RecentWorkspacesList(
-                    recentPaths: recentPaths,
-                    onTapPath: (path) {
-                      context.read<WorkspaceCubit>().openDirectoryTree(path);
-                    },
-                  ),
-                ),
-              ],
-            ),
+            ],
           ),
         );
       },

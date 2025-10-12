@@ -29,6 +29,13 @@ class CodeCombinerUseCase {
     return repository.removeRecentWorkspace(workspacePath);
   }
 
+  /// Business workflow: Toggle favorite for a recent workspace
+  ResultFuture<List<RecentWorkspace>> toggleFavoriteRecentWorkspace(
+    String workspacePath,
+  ) {
+    return repository.toggleFavoriteRecentWorkspace(workspacePath);
+  }
+
   /// Business workflow: Clear all recent workspaces
   ResultFuture<List<RecentWorkspace>> clearRecentWorkspaces() {
     return repository.clearRecentWorkspaces();

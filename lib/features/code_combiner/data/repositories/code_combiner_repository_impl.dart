@@ -61,6 +61,20 @@ class CodeCombinerRepositoryImpl implements CodeCombinerRepository {
   }
 
   @override
+  ResultFuture<List<RecentWorkspace>> toggleFavoriteRecentWorkspace(
+    String workspacePath,
+  ) async {
+    try {
+      final result = await localStorageDataSource.toggleFavoriteRecentWorkspace(
+        workspacePath,
+      );
+      return Right(result);
+    } on Exception catch (e) {
+      return Left(ErrorMapper.mapErrorToFailure(e));
+    }
+  }
+
+  @override
   ResultFuture<List<RecentWorkspace>> clearRecentWorkspaces() async {
     try {
       final result = await localStorageDataSource.clearRecentWorkspaces();

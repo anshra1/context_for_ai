@@ -26,6 +26,9 @@ abstract class LocalStorageDataSource {
   /// Purpose: Remove workspace from recent list by path
   Future<List<RecentWorkspace>> removeRecentWorkspace(String workspacePath);
 
+  /// Purpose: Toggle favorite flag for a recent workspace and return updated list
+  Future<List<RecentWorkspace>> toggleFavoriteRecentWorkspace(String workspacePath);
+
   /// Purpose: Retrieve saved recent workspaces from local storage on app startup
   Future<List<RecentWorkspace>> loadRecentWorkspaces();
 
@@ -128,6 +131,38 @@ class LocalStorageDataSourceImpl implements LocalStorageDataSource {
         userMessage: 'Failed to remove recent workspace',
         title: 'Storage Write Error',
         debugDetails: 'Failed to update recent workspaces list',
+      );
+    }
+  }
+
+  /// Purpose: Toggle favorite flag for a recent workspace and return sorted list
+  @override
+  Future<List<RecentWorkspace>> toggleFavoriteRecentWorkspace(
+    String workspacePath,
+  ) async {
+    try {
+      // Load raw list (unsorted) to mutate in place
+      final workspaces = await _loadRecentWorkspacesRaw();
+
+      final index = workspaces.indexWhere((w) => w.path == workspacePath);
+      if (index != -1) {
+        final current = workspaces[index];
+        // Flip favorite flag; preserve lastAccessed timestamp
+        workspaces[index] = current.copyWith(isFavorite: !current.isFavorite);
+
+        // Persist mutated list
+        await _saveWorkspacesList(workspaces);
+      }
+
+      // Return sorted list for immediate UI update
+      return _sortWorkspaces(workspaces);
+    } on Exception catch (e) {
+      throw StorageException(
+        methodName: 'toggleFavoriteRecentWorkspace',
+        originalError: e.toString(),
+        userMessage: 'Failed to toggle favorite for workspace',
+        title: 'Storage Write Error',
+        debugDetails: 'Unable to update favorite flag in storage',
       );
     }
   }
@@ -274,7 +309,8 @@ class LocalStorageDataSourceImpl implements LocalStorageDataSource {
         originalError: e.toString(),
         userMessage: 'Failed to save filter settings',
         title: 'Storage Write Error',
-        debugDetails: 'JSON encoding or SharedPreferences write failed for filter settings',
+        debugDetails:
+            'JSON encoding or SharedPreferences write failed for filter settings',
       );
     }
   }
@@ -379,7 +415,8 @@ class LocalStorageDataSourceImpl implements LocalStorageDataSource {
           originalError: e.toString(),
           userMessage: 'Invalid export location path',
           title: 'Path Validation Error',
-          debugDetails: 'Export location path validation failed: ${settings.defaultExportLocation}',
+          debugDetails:
+              'Export location path validation failed: ${settings.defaultExportLocation}',
         );
       }
     }
