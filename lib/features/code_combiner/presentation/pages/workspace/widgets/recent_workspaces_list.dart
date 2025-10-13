@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:text_merger/features/code_combiner/data/models/recent_workspace.dart';
 import 'package:text_merger/features/code_combiner/presentation/pages/workspace/widgets/recent_workspace_card.dart';
+import 'package:text_merger/features/code_combiner/presentation/widgets/empty_state_widget.dart';
 
 enum ViewMode { list, grid }
 
@@ -32,22 +33,10 @@ class _RecentWorkspacesListState extends State<RecentWorkspacesList> {
   @override
   Widget build(BuildContext context) {
     if (widget.workspaces.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'No recent workspaces yet',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Pick a folder or drop one to see it here.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        ),
+      return const EmptyStateWidget(
+        icon: Icons.history,
+        title: 'No recent workspaces',
+        subtitle: 'Open a folder to get started',
       );
     }
 

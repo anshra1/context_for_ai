@@ -51,6 +51,7 @@ dependencies:
   super_drag_and_drop: ^0.9.1
   toastification:
     path: /home/ansh/Studio Projects/Clone/context_for_ai/toastification
+  dotted_border: ^2.1.0
       
   uuid: ^4.5.1
 
