@@ -1,139 +1,138 @@
-Text Merger - Flutter Code Combiner Utility
+# Context for AI (Text Merger)
 
-Text Merger is a cross-platform desktop and web utility built with Flutter. It's designed to help developers and researchers easily combine the content of multiple files from a project directory into a single, merged text file.
+Context for AI is a cross-platform desktop application built with Flutter that simplifies the process of providing codebase context to Large Language Models (LLMs) like Claude or ChatGPT. 
 
-This tool is particularly useful for creating large context files for AI models (like Claude, GPT-4, etc.) by letting you select precisely which files to include or exclude from your project.
+## 🚀 The Problem It Solves
+Manually copying and pasting multiple files or directories for AI context is a tedious, repetitive task. This app streamlines the workflow by allowing developers to select workspaces, pick specific files or folders, and merge their contents into a single, AI-friendly format.
 
-Features
+## ✨ Key Features
+- **Workspace Management:** Easily open directories as workspaces. Keep track of recent and favorite workspaces (up to 15).
+- **Advanced File Exploring:** Navigate your local directories with a built-in file tree. Select or deselect specific files and folders to include in your context.
+- **Smart Code Combining:**
+  - **Batch Processing:** High-performance file reading handles hundreds of files simultaneously using concurrent batches of 10.
+  - **Auto-Filtering:** Automatically detects and skips binary files (e.g., `.png`, `.exe`, `.pdf`) and enforces a 5MB per-file size limit.
+  - **Intelligent Comment Stripping:** Custom character-by-character parser removes unnecessary comments (`//` and `/* */`) while smartly preserving documentation blocks (`///` and `/** */`). Handles edge cases inside string literals.
+- **Token Estimation & File Splitting:** Provides an estimated token count for LLMs and automatically splits the combined text into smaller chunks if it exceeds user-defined size limits.
+- **Export Preview:** Detailed export summary including total files processed, successful/failed file counts, and created output file paths.
+- **Customizable Settings:** Set token limits, default export locations, file split sizes, and toggle comment stripping.
+- **Dynamic Theming:** Light and Dark themes powered by a custom Material Design token system.
+- **Drag & Drop Support:** Drag and drop directories directly into the app.
 
-Open Project Workspace: Open any directory from your file system to view it as a workspace.
+## 🛠️ Architecture & Tech Stack
 
-File Tree Explorer: Navigate your project's complete file and folder structure in an expandable tree view.
+### Core
+| Category | Technology |
+|---|---|
+| **Framework** | [Flutter](https://flutter.dev/) (Cross-platform Desktop) |
+| **Language** | Dart (`>=3.8.1 <4.0.0`) |
+| **Architecture** | Clean Architecture (`data` → `domain` → `presentation`) |
 
-Selective Combining: Check or uncheck individual files or entire folders to include them in the final merged file.
+### State Management & DI
+| Category | Technology |
+|---|---|
+| **State Management** | BLoC / Cubit (`flutter_bloc`) |
+| **Dependency Injection** | `get_it` (Service Locator pattern) |
+| **Routing** | `go_router` (Declarative, URL-based) |
 
-Smart Filtering: Automatically ignores common unnecessary files and folders (e.g., .git, build, .DS_Store). (Feature inferred from filter models).
+### Data & Storage
+| Category | Technology |
+|---|---|
+| **Local Storage** | `shared_preferences` (JSON-encoded typed models) |
+| **Data Classes** | `freezed` & `json_serializable` (Immutable models with code generation) |
+| **Functional Programming** | `dartz` (Either type for error handling) |
 
-Recent Workspaces: Quickly access your recently opened project folders from the workspace home page.
+### UI & Design
+| Category | Technology |
+|---|---|
+| **Design System** | Custom [`material_design_system`](https://github.com/anshra1/material_design_system) package |
+| **Notifications** | Custom [`toastification`](https://github.com/anshra1/toastification) package |
+| **File Picker** | `file_picker` |
+| **Drag & Drop** | `super_drag_and_drop` |
 
-Settings Management: Customize app behavior, such as theme (Dark/Light mode).
+## 🏗️ Project Structure
 
-Cross-Platform: Built to run on Web, Windows, macOS, and Linux from a single codebase.
+The project follows a **Feature-First Clean Architecture** approach:
 
-Tech Stack & Architecture
-
-This project is built with a modern Flutter stack, emphasizing scalability and maintainability.
-
-Core Technology
-
-Framework: Flutter
-
-Language: Dart
-
-State Management
-
-flutter_bloc / Cubit: For predictable and decoupled state management.
-
-Navigation
-
-go_router: For a declarative, URL-based routing solution.
-
-Local Storage
-
-Hive: Used for fast, on-device storage of app settings and recent workspace paths.
-
-Dependency Injection
-
-get_it & injectable: For service location and managing dependencies.
-
-File System & UI
-
-file_picker: For opening the native directory picker.
-
-desktop_drop: For drag-and-drop support to open workspaces.
-
-flutter_syntax_view: For rendering the combined code with syntax highlighting.
-
-share_plus: For sharing the generated text file.
-
-Models & Code Generation
-
-freezed: For robust data models and state classes.
-
-build_runner: For running code generation.
-
-Project Architecture
-
-The app follows a Feature-First structure inspired by Clean Architecture.
-
+```
 lib/
-├── core/
-│   ├── di/                 # Dependency injection setup
-│   ├── error/              # Failure and exception handling
-│   ├── routes/             # App navigation (GoRouter)
-│   ├── services/           # Global services (e.g., loading)
-│   ├── theme/              # Theme cubit and theme data
-│   └── ...
+├── core/                       # Shared infrastructure
+│   ├── constants/              # App-wide constants
+│   ├── di/                     # Dependency Injection (get_it) setup
+│   ├── error/                  # Custom exceptions (FileSystem, Storage, Validation)
+│   ├── pages/                  # Shared pages
+│   ├── routes/                 # GoRouter configuration
+│   ├── services/               # Global services
+│   ├── theme/                  # ThemeCubit, ThemeState, dynamic theming
+│   ├── typedefs/               # Shared type aliases (ResultFuture, etc.)
+│   ├── usecase/                # Base UseCase abstractions
+│   ├── utils/                  # Utility functions
+│   └── widgets/                # Shared widgets
 │
 ├── features/
-│   └── code_combiner/      # Main feature
+│   └── code_combiner/          # Main feature module
 │       ├── data/
-│       │   ├── datasources/  # File system & local storage logic
-│       │   ├── models/       # Data models (Freezed)
-│       │   └── repositories/ # Implementation of domain repositories
-│       │
+│       │   ├── datasources/    # FileSystemDataSource, LocalStorageDataSource
+│       │   ├── enum/           # NodeType, SelectionState
+│       │   ├── models/         # FileNode, AppSettings, FilterSettings, etc.
+│       │   └── repositories/   # Repository implementations
 │       ├── domain/
-│       │   ├── repositories/ # Abstract repository contracts
-│       │   └── usecases/     # Core business logic (e.g., combine_files)
-│       │
+│       │   ├── repositories/   # Abstract repository contracts
+│       │   └── usecases/       # CodeCombinerUseCase
 │       └── presentation/
-│           ├── cubits/       # State management for pages
-│           ├── pages/        # Workspace, File Explorer, Settings pages
-│           └── widgets/      # Reusable widgets for this feature
+│           ├── cubits/         # WorkspaceCubit, FileExplorerCubit
+│           ├── pages/          # Workspace, File Explorer, Settings pages
+│           └── widgets/        # Feature-specific widgets
 │
-├── main.dart               # App entry point
-└── root_app.dart           # Root MaterialApp.router setup
+├── main.dart                   # App entry point with error boundary
+└── root_app.dart               # Root widget with MultiBlocProvider
+```
 
+## 📦 Getting Started
 
-Getting Started
+### Prerequisites
+- Flutter SDK (`>=3.8.1 <4.0.0`)
+- Dart SDK
 
-To run this project locally, follow these steps:
+### Installation
 
-Clone the repository:
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/anshra1/context_for_ai.git
+   cd context_for_ai
+   ```
 
-git clone [https://github.com/your-username/text_merger.git](https://github.com/your-username/text_merger.git)
-cd text_merger
+2. **Install dependencies:**
+   ```bash
+   flutter pub get
+   ```
 
+3. **Run the code generator** (for Freezed and JSON Serializable):
+   ```bash
+   dart run build_runner build --delete-conflicting-outputs
+   ```
 
-Install dependencies:
+4. **Run the app:**
+   ```bash
+   flutter run -d linux    # or macos / windows / chrome
+   ```
 
-flutter pub get
+## 🔧 How It Works
 
+1. **Open a Workspace** — Select a project directory via file picker or drag-and-drop.
+2. **Browse & Select Files** — Navigate the file tree and check the files/folders you want to include.
+3. **Combine & Export** — The app reads all selected files, optionally strips comments, adds file path headers, generates a summary, estimates token count, and exports the merged content to your chosen location.
+4. **Feed to AI** — Use the generated file as context for your LLM conversations.
 
-Run Code Generation:
-This project uses build_runner for dependency injection and data models. Run the following command to generate the necessary files:
+## 🧪 Running Tests
 
-flutter pub run build_runner build --delete-conflicting-outputs
+```bash
+flutter test
+```
 
+## 🤝 Contributing
 
-Run the app:
-Select your target device (e.g., desktop, chrome) and run:
+Contributions are welcome! Feel free to submit a Pull Request.
 
-flutter run
+## 📄 License
 
-
-How to Use
-
-Launch the application.
-
-On the Workspace page, either click "Open Directory" or drag and drop a project folder onto the window.
-
-You will be navigated to the File Explorer page.
-
-Browse your project tree. Check the files or folders you want to include in the final combined text.
-
-Use the filter inputs (if implemented) to include/exclude files by extension (e.g., .dart, .md).
-
-Click the "Combine" or "Generate" button.
-
-The app will process the files and show you a preview of the merged text, which you can then copy or save.
+This project is open-source. Please check the LICENSE file for details.
